@@ -1,176 +1,39 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Mail, CheckCircle } from "lucide-react";
-import { Header } from "@/components/molecules/Header";
-import { CartSheet } from "@/components/molecules/CartSheet";
 import { ProductsGrid } from "@/components/molecules/ProductsGrid";
-import Footer from "@/components/molecules/Footer";
-
-interface Product {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  image: string;
-  description: string;
-}
-
-interface CartItem extends Product {
-  quantity: number;
-}
-
-const categoryImages: Record<string, string> = {
-  chocolates: "https://static.photos/food/400x400/1",
-  bolos: "https://static.photos/food/400x400/2",
-  doces: "https://static.photos/food/400x400/3",
-  presentes: "https://static.photos/workspace/400x400/13",
-};
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Barra de Chocolate Orgânico 70%",
-    category: "chocolates",
-    price: 28.9,
-    image: "https://static.photos/food/400x400/6",
-    description: "Cacau orgânico selecionado",
-  },
-  {
-    id: 2,
-    name: "Trufas Sortidas - Caixa com 12",
-    category: "chocolates",
-    price: 45.0,
-    image: "https://static.photos/food/400x400/7",
-    description: "Sabores variados artesanais",
-  },
-  {
-    id: 3,
-    name: "Bolo de Chocolate Belga",
-    category: "bolos",
-    price: 120.0,
-    image: "https://static.photos/food/400x400/8",
-    description: "Cobertura de ganache orgânico",
-  },
-  {
-    id: 4,
-    name: "Macarons Franceses - 6 unidades",
-    category: "doces",
-    price: 35.0,
-    image: "https://static.photos/food/400x400/9",
-    description: "Sabores sortidos tradicionais",
-  },
-  {
-    id: 5,
-    name: "Cesta Café da Manhã Premium",
-    category: "presentes",
-    price: 189.9,
-    image: "https://static.photos/workspace/400x400/13",
-    description: "Itens orgânicos selecionados",
-  },
-  {
-    id: 6,
-    name: "Brigadeiros Gourmet - 15 unid.",
-    category: "doces",
-    price: 42.0,
-    image: "https://static.photos/food/400x400/14",
-    description: "Chocolate belga e cacau orgânico",
-  },
-  {
-    id: 7,
-    name: "Barra Chocolate ao Leite c/ Nuts",
-    category: "chocolates",
-    price: 32.5,
-    image: "https://static.photos/food/400x400/15",
-    description: "Castanhas orgânicas crocantes",
-  },
-  {
-    id: 8,
-    name: "Bolo Red Velvet",
-    category: "bolos",
-    price: 135.0,
-    image: "https://static.photos/food/400x400/16",
-    description: "Cream cheese e baunilha natural",
-  },
-];
+import { useCartStore } from "@/store/cart.store";
+import Link from "next/link";
+import { products, categoryImages } from "@/constants/products";
 
 export default function Home() {
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [filter, setFilter] = useState("all");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({
     message: "",
     show: false,
   });
-  const [scrollShadow, setScrollShadow] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollShadow(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // Use global stores
+  const { addToCart } = useCartStore();
 
   const showToast = (message: string) => {
     setToast({ message, show: true });
     setTimeout(() => setToast({ message: "", show: false }), 3000);
   };
 
-  const addToCart = (productId: number) => {
+  const handleAddToCart = (productId: number) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === productId);
-      if (existingItem) {
-        return prevCart.map((item) =>
-          item.id === productId
-            ? { ...item, quantity: item.quantity + 1 }
-            : item,
-        );
-      }
-      return [...prevCart, { ...product, quantity: 1 }];
-    });
+    addToCart(product);
     showToast(`${product.name} adicionado ao carrinho!`);
-  };
-
-  const updateQuantity = (productId: number, change: number) => {
-    setCart((prevCart) => {
-      const updated = prevCart.map((item) =>
-        item.id === productId
-          ? { ...item, quantity: Math.max(0, item.quantity + change) }
-          : item,
-      );
-      return updated.filter((item) => item.quantity > 0);
-    });
-  };
-
-  const removeFromCart = (productId: number) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
   };
 
   const filteredProducts =
     filter === "all" ? products : products.filter((p) => p.category === filter);
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
-
   return (
     <div className="font-playfair text-marrom-800 bg-rosa-50">
-      {/* Navigation */}
-      <Header
-        scrollShadow={scrollShadow}
-        onCartOpen={() => setCartOpen(true)}
-        mobileMenuOpen={mobileMenuOpen}
-        onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
-        onMobileMenuClose={() => setMobileMenuOpen(false)}
-        totalItems={totalItems}
-      />
-
       {/* Hero Section */}
       <section
         id="home"
@@ -307,13 +170,19 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8">
-            <ProductsGrid products={filteredProducts} onAddToCart={addToCart} />
+            <ProductsGrid
+              products={filteredProducts}
+              onAddToCart={handleAddToCart}
+            />
           </div>
 
           <div className="text-center mt-12">
-            <button className="border-2 border-marrom-400 text-marrom-800 px-8 py-3 rounded-full hover:bg-marrom-800 hover:text-white transition-all duration-300 font-semibold">
+            <Link
+              href="/products"
+              className="border-2 border-marrom-400 text-marrom-800 px-8 py-3 rounded-full hover:bg-marrom-800 hover:text-white transition-all duration-300 font-semibold"
+            >
               Ver Mais Produtos
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -332,15 +201,16 @@ export default function Home() {
 
             <div>
               <span className="text-vermelho-700 font-semibold tracking-wider uppercase text-sm mb-4 block">
-                Confeitaria Artesanal
+                Sobre nós
               </span>
               <h2 className="font-serif text-4xl font-bold text-marrom-900 mb-6">
-                Nossa História
+                Arte e paixão em cada detalhe
               </h2>
               <p className="text-marrom-600 mb-4 leading-relaxed">
-                Fundada em 2019, a Doces Bibi nasceu do sonho de criar doces que
-                não apenas satisfaçam o paladar, mas também proporcionem
-                momentos memóveis e especiais.
+                Fundada em 2019, a{" "}
+                <span className="font-semibold text-rosa-900">Doces Bibi</span>{" "}
+                nasceu do sonho de criar doces que não apenas satisfaçam o
+                paladar, mas também proporcionem momentos memóveis e especiais.
               </p>
               <p className="text-sm text-marrom-600 mb-6 leading-relaxed">
                 Nossa missão é levar alegria e doçura para a vida das pessoas
@@ -451,19 +321,6 @@ export default function Home() {
           </form>
         </div>
       </section>
-
-      {/* Footer */}
-      <Footer />
-
-      {/* Cart Sheet */}
-      <CartSheet
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-        items={cart}
-        totalPrice={totalPrice}
-        onUpdateQuantity={updateQuantity}
-        onRemoveItem={removeFromCart}
-      />
 
       {/* Toast Notification */}
       <div
