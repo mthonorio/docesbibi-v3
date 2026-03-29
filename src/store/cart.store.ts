@@ -1,13 +1,8 @@
+import { Product } from "@/types/api";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  description: string;
-  category: string;
+export interface CartItem extends Product {
   quantity: number;
 }
 
@@ -18,8 +13,8 @@ interface CartStore {
 
   // Actions
   addToCart: (product: Omit<CartItem, "quantity">) => void;
-  removeFromCart: (id: number) => void;
-  updateQuantity: (id: number, change: number) => void;
+  removeFromCart: (id: string) => void;
+  updateQuantity: (id: string, change: number) => void;
   clearCart: () => void;
   setIsOpen: (open: boolean) => void;
 

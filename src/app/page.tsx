@@ -1,32 +1,94 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, CheckCircle } from "lucide-react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 import { ProductsGrid } from "@/components/molecules/ProductsGrid";
 import { useCartStore } from "@/store/cart.store";
+import { productApi } from "@/api/products";
+import { categoryImages } from "@/constants/products";
+import type { Product } from "@/types/api";
 import Link from "next/link";
-import { products, categoryImages } from "@/constants/products";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   const [filter, setFilter] = useState("all");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({
     message: "",
     show: false,
   });
 
+  // Easter promotional banners
+  const easterBanners = [
+    {
+      id: 1,
+      title: "Coleção Especial de Páscoa",
+      image:
+        "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/banner_easter.png",
+      link: "/easter",
+    },
+    {
+      id: 2,
+      title: "Coleção Especial de Páscoa 2",
+      image:
+        "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/banner_easter_2.png",
+      link: "/easter",
+    },
+  ];
+
   // Use global stores
   const { addToCart } = useCartStore();
+
+  // Buscar produtos da API ao montar o componente
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await productApi.getAll();
+        setProducts(data);
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Erro ao carregar produtos",
+        );
+        console.error("Erro ao buscar produtos:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const showToast = (message: string) => {
     setToast({ message, show: true });
     setTimeout(() => setToast({ message: "", show: false }), 3000);
   };
 
-  const handleAddToCart = (productId: number) => {
+  const handleAddToCart = (productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
     addToCart(product);
     showToast(`${product.name} adicionado ao carrinho!`);
+  };
+
+  const handleCategoryFilter = (category: string) => {
+    if (category === "pascoa") {
+      router.push("/easter");
+      return;
+    }
+
+    setFilter(category);
+    const el = document.getElementById("produtos");
+    el?.scrollIntoView({ behavior: "smooth" });
   };
 
   const filteredProducts =
@@ -37,7 +99,7 @@ export default function Home() {
       {/* Hero Section */}
       <section
         id="home"
-        className="relative pt-20 min-h-screen flex items-center overflow-hidden"
+        className="relative pt-20 pb-3 min-h-screen flex items-center overflow-hidden"
       >
         <div className="absolute inset-0 z-0">
           <div className="absolute top-20 right-0 w-96 h-96 bg-rosa-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"></div>
@@ -93,6 +155,56 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Easter Banner Carousel */}
+      <section className="py-8 bg-gradient-to-r from-rosa-600 to-rosa-800">
+        <div className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8">
+          <Swiper
+            modules={[Navigation, Pagination, Autoplay]}
+            navigation
+            pagination={{ clickable: true }}
+            autoplay={{
+              delay: 5000,
+              disableOnInteraction: false,
+            }}
+            className="rounded-2xl shadow-xl"
+            style={
+              {
+                "--swiper-navigation-color": "white",
+                "--swiper-pagination-bullet-inactive-color":
+                  "rgba(255, 255, 255, 0.5)",
+                "--swiper-pagination-bullet-inactive-width": "8px",
+                "--swiper-pagination-bullet-width": "8px",
+              } as React.CSSProperties
+            }
+          >
+            {easterBanners.map((banner) => (
+              <SwiperSlide key={banner.id} className="!h-auto">
+                <Link
+                  href={banner.link}
+                  className="block group overflow-hidden rounded-2xl"
+                >
+                  <img
+                    src={banner.image}
+                    alt={banner.title}
+                    className="w-full h-auto object-cover transition-transform duration-500"
+                  />
+                </Link>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+
+          {/* Easter CTA */}
+          <div className="mt-8 text-center">
+            <Link
+              href="/easter"
+              className="inline-block bg-white text-rosa-800 px-8 py-4 rounded-full font-semibold hover:bg-rosa-50 transition-colors duration-300 shadow-lg"
+            >
+              Explorar Páscoa
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Categories Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -104,31 +216,28 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {["chocolates", "bolos", "doces", "presentes"].map((category) => (
-              <div
-                key={category}
-                className="group cursor-pointer hover-lift"
-                onClick={() => {
-                  setFilter(category);
-                  document
-                    .getElementById("produtos")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                <div className="relative overflow-hidden rounded-2xl mb-4">
-                  <img
-                    src={
-                      categoryImages[category as keyof typeof categoryImages]
-                    }
-                    alt={category}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500 rounded-2xl"
-                  />
+            {["pascoa", "personalizados", "tradicionais", "gourmet"].map(
+              (category) => (
+                <div
+                  key={category}
+                  className="group cursor-pointer hover-lift"
+                  onClick={() => handleCategoryFilter(category)}
+                >
+                  <div className="relative overflow-hidden rounded-2xl mb-4">
+                    <img
+                      src={
+                        categoryImages[category as keyof typeof categoryImages]
+                      }
+                      alt={category}
+                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500 rounded-2xl"
+                    />
+                  </div>
+                  <h3 className="font-serif text-xl font-semibold text-marrom-900 text-center group-hover:text-rosa-800 transition-colors">
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </h3>
                 </div>
-                <h3 className="font-serif text-xl font-semibold text-marrom-900 text-center group-hover:text-rosa-800 transition-colors">
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </h3>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         </div>
       </section>
@@ -153,7 +262,7 @@ export default function Home() {
               >
                 Todos
               </button>
-              {["chocolates", "bolos", "doces", "presentes"].map((cat) => (
+              {["personalizados", "tradicionais", "gourmet"].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setFilter(cat)}
@@ -170,10 +279,25 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8">
-            <ProductsGrid
-              products={filteredProducts}
-              onAddToCart={handleAddToCart}
-            />
+            {loading ? (
+              <div className="col-span-full text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rosa-600"></div>
+                <p className="text-marrom-600 text-lg">
+                  Carregando produtos...
+                </p>
+              </div>
+            ) : error ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-red-600 text-lg">
+                  Erro ao carregar produtos: {error}
+                </p>
+              </div>
+            ) : (
+              <ProductsGrid
+                products={filteredProducts}
+                onAddToCart={handleAddToCart}
+              />
+            )}
           </div>
 
           <div className="text-center mt-12">

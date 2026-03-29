@@ -1,17 +1,15 @@
+import { formatCurrency } from "@/functions/currency";
+import { Product } from "@/types/api";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
-interface CartItemType {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
+interface CartItemType extends Product {
   quantity: number;
 }
 
 interface CartItemProps {
   item: CartItemType;
-  onUpdateQuantity: (id: number, change: number) => void;
-  onRemove: (id: number) => void;
+  onUpdateQuantity: (id: string, change: number) => void;
+  onRemove: (id: string) => void;
 }
 
 export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
@@ -27,7 +25,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
           {item.name}
         </h4>
         <p className="text-vermelho-700 font-bold">
-          R$ {item.price.toFixed(2)}
+          {formatCurrency(item.price)}
         </p>
         <div className="flex items-center gap-2 mt-2">
           <button

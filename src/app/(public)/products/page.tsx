@@ -1,12 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle } from "lucide-react";
 import { ProductsGrid } from "@/components/molecules/ProductsGrid";
 import { useCartStore } from "@/store/cart.store";
-import { products } from "@/constants/products";
+import { productApi } from "@/api/products";
+import type { Product } from "@/types/api";
 
 export default function ProductsPage() {
   const [filter, setFilter] = useState("all");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({
     message: "",
     show: false,
@@ -14,12 +18,33 @@ export default function ProductsPage() {
 
   const { addToCart } = useCartStore();
 
+  // Buscar produtos da API ao montar o componente
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await productApi.getAll();
+        setProducts(data);
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Erro ao carregar produtos",
+        );
+        console.error("Erro ao buscar produtos:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   const showToast = (message: string) => {
     setToast({ message, show: true });
     setTimeout(() => setToast({ message: "", show: false }), 3000);
   };
 
-  const handleAddToCart = (productId: number) => {
+  const handleAddToCart = (productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
@@ -69,32 +94,46 @@ export default function ProductsPage() {
               >
                 Todos
               </button>
-              {["chocolates", "bolos", "doces", "presentes"].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setFilter(cat)}
-                  className={`px-6 py-2 rounded-full whitespace-nowrap transition-colors font-semibold ${
-                    filter === cat
-                      ? "bg-rosa-800 text-white"
-                      : "text-marrom-700 hover:bg-rosa-200"
-                  }`}
-                >
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </button>
-              ))}
+              {["pascoa", "personalizados", "tradicionais", "gourmet"].map(
+                (cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setFilter(cat)}
+                    className={`px-6 py-2 rounded-full whitespace-nowrap transition-colors font-semibold ${
+                      filter === cat
+                        ? "bg-rosa-800 text-white"
+                        : "text-marrom-700 hover:bg-rosa-200"
+                    }`}
+                  >
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </button>
+                ),
+              )}
             </div>
           </div>
 
           {/* Products Grid */}
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8">
-            <ProductsGrid
-              products={filteredProducts}
-              onAddToCart={handleAddToCart}
-            />
-          </div>
+          {loading ? (
+            <div className="text-center py-20">
+              <p className="text-marrom-600 text-lg">Carregando produtos...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <p className="text-red-600 text-lg">
+                Erro ao carregar produtos: {error}
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8">
+              <ProductsGrid
+                products={filteredProducts}
+                onAddToCart={handleAddToCart}
+              />
+            </div>
+          )}
 
           {/* Empty State */}
-          {filteredProducts.length === 0 && (
+          {!loading && !error && filteredProducts.length === 0 && (
             <div className="text-center py-20">
               <p className="text-marrom-600 text-lg">
                 Nenhum produto encontrado nesta categoria.

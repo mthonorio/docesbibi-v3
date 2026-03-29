@@ -1,13 +1,9 @@
 import { X } from "lucide-react";
 import { CartItem } from "./CartItem";
+import { Product } from "@/types/api";
+import { formatCurrency } from "@/functions/currency";
 
-interface CartItemType {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  description: string;
-  category: string;
+interface CartItemType extends Product {
   quantity: number;
 }
 
@@ -16,8 +12,8 @@ interface CartSheetProps {
   onClose: () => void;
   items: CartItemType[];
   totalPrice: number;
-  onUpdateQuantity: (id: number, change: number) => void;
-  onRemoveItem: (id: number) => void;
+  onUpdateQuantity: (id: string, change: number) => void;
+  onRemoveItem: (id: string) => void;
 }
 
 export function CartSheet({
@@ -79,7 +75,7 @@ export function CartSheet({
         <div className="p-6 border-t border-rosa-100 bg-rosa-50">
           <div className="flex justify-between mb-4 text-lg font-semibold">
             <span>Total:</span>
-            <span>R$ {totalPrice.toFixed(2)}</span>
+            <span>{formatCurrency(totalPrice)}</span>
           </div>
           <button className="w-full bg-rosa-800 text-white py-3 rounded-full hover:bg-vermelho-700 transition-colors font-semibold">
             Finalizar Compra

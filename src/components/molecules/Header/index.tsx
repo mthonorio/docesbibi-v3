@@ -43,6 +43,12 @@ export function Header({
               Início
             </a>
             <a
+              href="/easter"
+              className="text-marrom-700 hover:text-rosa-800 font-medium"
+            >
+              Páscoa
+            </a>
+            <a
               href="/products"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
             >
@@ -107,6 +113,13 @@ export function Header({
               onClick={onMobileMenuClose}
             >
               Início
+            </a>
+            <a
+              href="/easter"
+              className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"
+              onClick={onMobileMenuClose}
+            >
+              Páscoa
             </a>
             <a
               href="/products"
