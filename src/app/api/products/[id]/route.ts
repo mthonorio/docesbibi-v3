@@ -3,15 +3,15 @@ import { query } from "@/lib/db";
 import { Product, UpdateProductInput, ApiResponse } from "@/types/api";
 
 interface ParamsProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // PATCH /api/products/[id] - atualizar produto
 export async function PATCH(request: NextRequest, { params }: ParamsProps) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const body: UpdateProductInput = await request.json();
 
     // Validar se o ID é válido
@@ -103,7 +103,7 @@ export async function PATCH(request: NextRequest, { params }: ParamsProps) {
 // DELETE /api/products/[id] - deletar produto
 export async function DELETE(request: NextRequest, { params }: ParamsProps) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     // Validar se o ID é válido
     if (!id || isNaN(Number(id))) {

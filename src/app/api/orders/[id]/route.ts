@@ -3,15 +3,15 @@ import { query } from "@/lib/db";
 import type { Order, UpdateOrderInput, ApiResponse } from "@/types/api";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET /api/orders/:id - Buscar pedido específico
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const orderId = params.id;
+    const { id: orderId } = await params;
 
     // Validar UUID
     if (!isValidUUID(orderId)) {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PATCH /api/orders/:id - Atualizar pedido
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const orderId = params.id;
+    const { id: orderId } = await params;
     const body: UpdateOrderInput = await request.json();
 
     // Validar UUID
@@ -170,7 +170,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/orders/:id - Deletar pedido (cascata deleta itens)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const orderId = params.id;
+    const { id: orderId } = await params;
 
     // Validar UUID
     if (!isValidUUID(orderId)) {
