@@ -46,10 +46,10 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="https://wa.me/83986513392"
+                  href="https://wa.me/+5583986513392"
                   className="text-marrom-300 hover:text-rosa-600"
                 >
-                  (83) 98651-3392
+                  +55 (83) 98651-3392
                 </a>
               </li>
               <li>
