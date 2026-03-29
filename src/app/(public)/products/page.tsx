@@ -1,16 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CheckCircle } from "lucide-react";
 import { ProductsGrid } from "@/components/molecules/ProductsGrid";
 import { useCartStore } from "@/store/cart.store";
-import { productApi } from "@/api/products";
+import { useSupabaseData } from "@/hooks/useSupabase";
 import type { Product } from "@/types/api";
 
 export default function ProductsPage() {
   const [filter, setFilter] = useState("all");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({
     message: "",
     show: false,
@@ -18,26 +15,12 @@ export default function ProductsPage() {
 
   const { addToCart } = useCartStore();
 
-  // Buscar produtos da API ao montar o componente
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const data = await productApi.getAll();
-        setProducts(data);
-        setError(null);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar produtos",
-        );
-        console.error("Erro ao buscar produtos:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
+  // Buscar produtos diretamente do Supabase
+  const {
+    data: products,
+    loading,
+    error,
+  } = useSupabaseData<Product>("products");
 
   const showToast = (message: string) => {
     setToast({ message, show: true });

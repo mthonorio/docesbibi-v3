@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Mail, CheckCircle } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
@@ -8,7 +8,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { ProductsGrid } from "@/components/molecules/ProductsGrid";
 import { useCartStore } from "@/store/cart.store";
-import { productApi } from "@/api/products";
+import { useSupabaseData } from "@/hooks/useSupabase";
 import { categoryImages } from "@/constants/products";
 import type { Product } from "@/types/api";
 import Link from "next/link";
@@ -17,9 +17,6 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const router = useRouter();
   const [filter, setFilter] = useState("all");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({
     message: "",
     show: false,
@@ -46,26 +43,12 @@ export default function Home() {
   // Use global stores
   const { addToCart } = useCartStore();
 
-  // Buscar produtos da API ao montar o componente
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const data = await productApi.getAll();
-        setProducts(data);
-        setError(null);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar produtos",
-        );
-        console.error("Erro ao buscar produtos:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
+  // Buscar produtos diretamente do Supabase
+  const {
+    data: products,
+    loading,
+    error,
+  } = useSupabaseData<Product>("products");
 
   const showToast = (message: string) => {
     setToast({ message, show: true });
