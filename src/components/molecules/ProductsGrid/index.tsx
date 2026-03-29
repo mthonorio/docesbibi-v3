@@ -1,7 +1,7 @@
 import { ProductCard } from "../ProductCard";
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
   category: string;
   price: number;
@@ -11,7 +11,7 @@ interface Product {
 
 interface ProductsGridProps {
   products: Product[];
-  onAddToCart: (id: number) => void;
+  onAddToCart: (id: string) => void;
 }
 
 export function ProductsGrid({ products, onAddToCart }: ProductsGridProps) {

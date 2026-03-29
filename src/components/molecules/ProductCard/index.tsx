@@ -1,7 +1,8 @@
+import { formatCurrency } from "@/functions/currency";
 import { Plus } from "lucide-react";
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
   category: string;
   price: number;
@@ -11,7 +12,7 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (id: number) => void;
+  onAddToCart: (id: string) => void;
 }
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
@@ -49,7 +50,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         {/* Price and Action */}
         <div className="flex justify-between items-center">
           <span className="text-xl font-bold text-vermelho-700">
-            R$ {product.price.toFixed(2)}
+            {formatCurrency(product.price)}
           </span>
           <button
             onClick={() => onAddToCart(product.id)}

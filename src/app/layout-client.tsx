@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { CartSheet } from "@/components/molecules/CartSheet";
 import Footer from "@/components/molecules/Footer";
 import { Header } from "@/components/molecules/Header";
@@ -12,6 +12,8 @@ interface LayoutClientProps {
 }
 
 export function LayoutClient({ children }: LayoutClientProps) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
   const {
     items: cartItems,
     isOpen: cartOpen,
@@ -29,6 +31,11 @@ export function LayoutClient({ children }: LayoutClientProps) {
     setScrollShadow,
     toggleMobileMenu,
   } = useUIStore();
+
+  // Set hydrated flag after mount to prevent hydration mismatch
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Handle scroll shadow
   useEffect(() => {
@@ -48,14 +55,14 @@ export function LayoutClient({ children }: LayoutClientProps) {
         mobileMenuOpen={mobileMenuOpen}
         onMobileMenuToggle={toggleMobileMenu}
         onMobileMenuClose={() => setMobileMenuOpen(false)}
-        totalItems={totalItems()}
+        totalItems={isHydrated ? totalItems() : 0}
       />
       <main className="flex-1 flex flex-col">{children}</main>
       <CartSheet
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
         items={cartItems}
-        totalPrice={totalPrice()}
+        totalPrice={isHydrated ? totalPrice() : 0}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeFromCart}
       />
