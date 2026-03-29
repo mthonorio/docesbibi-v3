@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Verificar se é uma requisição OPTIONS (preflight de CORS)
   if (request.method === "OPTIONS") {
     return new NextResponse(null, {
