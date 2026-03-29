@@ -4,8 +4,21 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Erro na requisição");
+    const contentType = response.headers.get("content-type");
+    let errorMessage = "Erro na requisição";
+
+    if (contentType?.includes("application/json")) {
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || errorMessage;
+      } catch {
+        errorMessage = `Erro HTTP ${response.status}`;
+      }
+    } else {
+      errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+    }
+
+    throw new Error(errorMessage);
   }
   const data = await response.json();
   if (!data.success) {
