@@ -1,25 +1,38 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  XCircle,
+  Clock,
   AlertCircle,
   Mail,
   Phone,
   Home,
-  HelpCircle,
+  Loader,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { logger } from "@/lib/mercadopago";
 
-export default function FailurePage() {
+export default function PendingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orderNumber, setOrderNumber] = useState<string>("");
   const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
+    const paymentId = searchParams.get("payment_id");
+    const status = searchParams.get("status");
+    const externalReference = searchParams.get("external_reference");
+
+    logger.info("PENDING_PAGE", "Pagamento em análise", {
+      paymentId,
+      status,
+      externalReference,
+    });
+
     const number =
-      searchParams.get("orderNumber") ||
+      externalReference ||
+      paymentId ||
       "DOC-" + Math.random().toString(36).substr(2, 9).toUpperCase();
     const customerEmail = searchParams.get("email") || "";
     setOrderNumber(number);
@@ -28,7 +41,7 @@ export default function FailurePage() {
 
   return (
     <div className="font-playfair text-marrom-800 bg-rosa-50 min-h-screen">
-      {/* Hero Section - Failure */}
+      {/* Hero Section - Pending */}
       <section className="relative pt-16 sm:pt-24 pb-3 min-h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <div className="absolute top-20 right-0 w-96 h-96 bg-rosa-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"></div>
@@ -36,39 +49,38 @@ export default function FailurePage() {
         </div>
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full text-center">
-          {/* Error Icon */}
+          {/* Pending Icon */}
           <div className="mb-8 flex justify-center">
             <div className="relative w-24 h-24 md:w-28 md:h-28">
-              <div className="absolute inset-0 bg-red-200 rounded-full animate-pulse"></div>
+              <div className="absolute inset-0 bg-yellow-200 rounded-full animate-pulse"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <XCircle className="w-20 h-20 md:w-24 md:h-24 text-red-600" />
+                <Loader className="w-20 h-20 md:w-24 md:h-24 text-yellow-600 animate-spin" />
               </div>
             </div>
           </div>
 
           {/* Main Heading */}
           <h1 className="font-serif text-4xl md:text-6xl font-bold text-marrom-900 mb-4">
-            Pagamento Recusado
+            Pagamento em Análise
           </h1>
 
           <p className="text-marrom-600 text-lg mb-8 leading-relaxed max-w-2xl mx-auto">
-            Desculpe, não conseguimos processar seu pagamento. Isso pode ter
-            ocorrido por diversos motivos como cartão expirado, saldo
-            insuficiente ou dados incorretos.
+            Seu pagamento está sendo verificado. Isso pode levar alguns minutos.
+            Você receberá um e-mail assim que o pagamento for confirmado.
           </p>
 
           {/* Order Number */}
           {orderNumber && (
-            <div className="bg-white rounded-3xl shadow-lg p-8 mb-12 border-2 border-red-200">
+            <div className="bg-white rounded-3xl shadow-lg p-8 mb-12 border-2 border-yellow-200">
               <p className="text-marrom-600 text-sm font-semibold mb-2">
-                NÚMERO DA TENTATIVA
+                NÚMERO DA TRANSAÇÃO
               </p>
-              <p className="text-2xl md:text-3xl font-bold text-red-600 font-mono">
+              <p className="text-2xl md:text-3xl font-bold text-yellow-600 font-mono">
                 {orderNumber}
               </p>
               {email && (
                 <p className="text-marrom-600 text-sm mt-4">
-                  E-mail registrado:{" "}
+                  Confirmação será enviada para:{" "}
                   <span className="font-semibold">{email}</span>
                 </p>
               )}
@@ -81,75 +93,84 @@ export default function FailurePage() {
               href="/"
               className="bg-rosa-800 text-white px-8 py-4 rounded-full hover:bg-vermelho-700 transition-colors font-semibold shadow-lg"
             >
-              Tentar Novamente
+              Voltar para Home
             </Link>
             <Link
-              href="/"
+              href="/orders"
               className="border-2 border-marrom-400 text-marrom-800 px-8 py-4 rounded-full hover:bg-marrom-800 hover:text-white transition-all duration-300 font-semibold"
             >
-              Voltar para Home
+              Acompanhar Pedido
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Reasons Section */}
+      {/* Timeline Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="font-serif text-4xl font-bold text-marrom-900 mb-4">
-              Por que meu pagamento foi recusado?
+              O que acontece agora?
             </h2>
             <div className="w-24 h-1 bg-rosa-600 mx-auto rounded-full"></div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                icon: AlertCircle,
-                title: "Dados do Cartão Incorretos",
-                description:
-                  "Verifique se o número do cartão, validade e CVV estão corretos.",
+                icon: Loader,
+                title: "Em Verificação",
+                description: "Seu pagamento está sendo processado",
+                status: "in-progress",
               },
               {
-                icon: Phone,
-                title: "Saldo Insuficiente",
-                description:
-                  "Seu cartão não possui saldo disponível para completar a compra.",
+                icon: CheckCircle2,
+                title: "Confirmação",
+                description: "Receberá notificação por e-mail",
+                status: "pending",
               },
               {
-                icon: HelpCircle,
-                title: "Cartão Expirado",
-                description:
-                  "Seu cartão pode estar expirado. Tente utilizar outro cartão.",
+                icon: Mail,
+                title: "Entrega",
+                description: "Seus doces serão preparados e entregues",
+                status: "pending",
               },
-              {
-                icon: AlertCircle,
-                title: "Transação Bloqueada",
-                description:
-                  "Seu banco pode ter bloqueado a transação como medida de segurança.",
-              },
-            ].map((reason, index) => {
-              const Icon = reason.icon;
+            ].map((step, index) => {
+              const Icon = step.icon;
+              const isInProgress = step.status === "in-progress";
+
               return (
-                <div
-                  key={index}
-                  className="bg-rosa-50 rounded-2xl p-6 border border-rosa-200"
-                >
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-12 h-12 bg-red-200 rounded-full flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-red-600" />
-                      </div>
+                <div key={index} className="relative">
+                  {/* Connecting Line */}
+                  {index < 2 && (
+                    <div
+                      className={`absolute top-12 left-[calc(50%+2rem)] right-[calc(-100%-2rem)] h-1 ${
+                        isInProgress ? "bg-yellow-600" : "bg-marrom-200"
+                      }`}
+                    ></div>
+                  )}
+
+                  {/* Card */}
+                  <div className="relative z-10 bg-white rounded-2xl p-6 text-center shadow-md hover:shadow-lg transition-shadow">
+                    <div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                        isInProgress
+                          ? "bg-yellow-100 animate-pulse"
+                          : "bg-marrom-100"
+                      }`}
+                    >
+                      <Icon
+                        className={`w-8 h-8 ${
+                          isInProgress ? "text-yellow-600" : "text-marrom-400"
+                        } ${isInProgress ? "animate-spin" : ""}`}
+                      />
                     </div>
-                    <div className="text-left">
-                      <h3 className="font-semibold text-marrom-900 mb-2">
-                        {reason.title}
-                      </h3>
-                      <p className="text-marrom-600 text-sm leading-relaxed">
-                        {reason.description}
-                      </p>
-                    </div>
+                    <h3 className="font-semibold text-marrom-900 mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-sm text-marrom-600 leading-relaxed">
+                      {step.description}
+                    </p>
                   </div>
                 </div>
               );
@@ -158,62 +179,63 @@ export default function FailurePage() {
         </div>
       </section>
 
-      {/* Solutions Section */}
+      {/* Info Section */}
       <section className="py-20 bg-rosa-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-3xl shadow-lg p-8 md:p-12">
             <h2 className="font-serif text-3xl font-bold text-marrom-900 mb-8 text-center">
-              O que você pode fazer?
+              Informações Importantes
             </h2>
 
             <div className="space-y-6">
               {[
                 {
-                  step: "1",
-                  title: "Verifique os dados",
-                  description:
-                    "Confirme se todos os dados do seu cartão estão preenchidos corretamente.",
+                  icon: Clock,
+                  title: "Tempo de Processamento",
+                  content:
+                    "A análise da transação geralmente leva de 1 a 30 minutos, dependendo do seu banco.",
                 },
                 {
-                  step: "2",
-                  title: "Tente outro cartão",
-                  description:
-                    "Se disponível, utilize outro cartão de crédito ou débito para a compra.",
+                  icon: Mail,
+                  title: "Notificação por E-mail",
+                  content:
+                    "Você receberá um e-mail confirmando o resultado do pagamento. Verifique sua caixa de spam.",
                 },
                 {
-                  step: "3",
-                  title: "Entre em contato com seu banco",
-                  description:
-                    "Seu banco pode ter bloqueado a transação. Entre em contato para autorizar.",
+                  icon: AlertCircle,
+                  title: "Não Feche Esta Página",
+                  content:
+                    "Você pode fechar esta página com segurança. Continuaremos verificando seu pagamento.",
                 },
                 {
-                  step: "4",
-                  title: "Fale conosco",
-                  description:
-                    "Se o problema persistir, não hesite em nos contatar para assistência.",
+                  icon: CheckCircle2,
+                  title: "Em Caso de Dúvida",
+                  content:
+                    "Se passarem mais de 30 minutos sem confirmação, entre em contato conosco.",
                 },
-              ].map((solution) => (
-                <div
-                  key={solution.step}
-                  className="flex gap-4 pb-6 border-b border-marrom-200 last:border-b-0 last:pb-0"
-                >
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-rosa-200 rounded-full flex items-center justify-center">
-                      <span className="font-bold text-rosa-800">
-                        {solution.step}
-                      </span>
+              ].map((info, index) => {
+                const Icon = info.icon;
+                return (
+                  <div
+                    key={index}
+                    className="flex gap-4 pb-6 border-b border-marrom-200 last:border-b-0 last:pb-0"
+                  >
+                    <div className="shrink-0">
+                      <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+                        <Icon className="w-6 h-6 text-yellow-600" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-marrom-900 mb-2">
+                        {info.title}
+                      </h3>
+                      <p className="text-marrom-600 text-sm leading-relaxed">
+                        {info.content}
+                      </p>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-marrom-900 mb-1">
-                      {solution.title}
-                    </h3>
-                    <p className="text-marrom-600 text-sm">
-                      {solution.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -227,8 +249,7 @@ export default function FailurePage() {
               Precisa de Ajuda?
             </h2>
             <p className="text-marrom-600 text-lg">
-              Nossa equipe está aqui para ajudar você a resolver qualquer
-              problema
+              Não hesite em nos contatar se tiver dúvidas
             </p>
           </div>
 
@@ -255,8 +276,8 @@ export default function FailurePage() {
             ].map((contact, index) => (
               <div key={index}>
                 <div className="mb-4 flex justify-center">
-                  <div className="w-16 h-16 bg-rosa-200 rounded-full flex items-center justify-center">
-                    <contact.icon className="w-8 h-8 text-rosa-800" />
+                  <div className="w-16 h-16 bg-yellow-200 rounded-full flex items-center justify-center">
+                    <contact.icon className="w-8 h-8 text-yellow-600" />
                   </div>
                 </div>
                 <h3 className="font-semibold text-marrom-900 mb-2">

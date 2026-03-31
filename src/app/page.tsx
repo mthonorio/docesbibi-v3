@@ -139,7 +139,7 @@ export default function Home() {
       </section>
 
       {/* Easter Banner Carousel */}
-      <section className="py-8 bg-gradient-to-r from-rosa-600 to-rosa-800">
+      <section className="py-8 bg-linear-to-r from-rosa-600 to-rosa-800">
         <div className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8">
           <Swiper
             modules={[Navigation, Pagination, Autoplay]}
@@ -161,7 +161,7 @@ export default function Home() {
             }
           >
             {easterBanners.map((banner) => (
-              <SwiperSlide key={banner.id} className="!h-auto">
+              <SwiperSlide key={banner.id} className="h-auto!">
                 <Link
                   href={banner.link}
                   className="block group overflow-hidden rounded-2xl"

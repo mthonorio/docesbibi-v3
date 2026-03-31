@@ -10,21 +10,59 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { logger } from "@/lib/mercadopago";
+
+interface PaymentInfo {
+  paymentId: string;
+  merchantOrderId: string;
+  email: string;
+  status: string;
+}
 
 export default function SuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orderNumber, setOrderNumber] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Pega os parâmetros da URL
-    const number =
-      searchParams.get("orderNumber") ||
-      "DOC-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+    // Capturar parâmetros do Mercado Pago
+    const paymentId = searchParams.get("payment_id");
+    const merchantOrderId = searchParams.get("merchant_order_id");
+    const status = searchParams.get("status");
+    const externalReference = searchParams.get("external_reference");
+
+    logger.info("SUCCESS_PAGE", "Parâmetros recebidos", {
+      paymentId,
+      merchantOrderId,
+      status,
+      externalReference,
+    });
+
+    // Se vem do MP, usar esses dados; senão usar da URL
+    if (paymentId) {
+      const number = externalReference || paymentId;
+      setOrderNumber(number);
+      setPaymentInfo({
+        paymentId,
+        merchantOrderId: merchantOrderId || "",
+        email: searchParams.get("email") || "",
+        status: status || "approved",
+      });
+    } else {
+      // Fallback para testes
+      const number =
+        searchParams.get("orderNumber") ||
+        "DOC-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+      setOrderNumber(number);
+    }
+
     const customerEmail = searchParams.get("email") || "";
-    setOrderNumber(number);
     setEmail(customerEmail);
+
+    setIsLoading(false);
   }, [searchParams]);
 
   const estimatedDate = new Date();
