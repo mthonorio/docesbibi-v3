@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import Link from "next/link";
 import { CartItem } from "./CartItem";
 import { Product } from "@/types/api";
 import { formatCurrency } from "@/functions/currency";
@@ -77,9 +78,13 @@ export function CartSheet({
             <span>Total:</span>
             <span>{formatCurrency(totalPrice)}</span>
           </div>
-          <button className="w-full bg-rosa-800 text-white py-3 rounded-full hover:bg-vermelho-700 transition-colors font-semibold">
+          <Link
+            href="/checkout"
+            className="block w-full bg-rosa-800 text-white py-3 rounded-full hover:bg-vermelho-700 transition-colors font-semibold text-center"
+            onClick={onClose}
+          >
             Finalizar Compra
-          </button>
+          </Link>
         </div>
       </div>
     </>
