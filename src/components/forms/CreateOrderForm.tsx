@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useOrderStore } from "@/store/orderStore";
+import { useOrderStore } from "@/store/order.store";
 import type { CreateOrderInput } from "@/types/api";
 import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";

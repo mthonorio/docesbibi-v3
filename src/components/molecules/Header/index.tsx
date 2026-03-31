@@ -28,7 +28,7 @@ export function Header({
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div
-            className="flex-shrink-0 flex items-center cursor-pointer text-2xl font-serif font-bold text-gradient"
+            className="shrink-0 flex items-center cursor-pointer text-2xl font-serif font-bold text-gradient"
             onClick={() => window.scrollTo(0, 0)}
           >
             Doces Bibi

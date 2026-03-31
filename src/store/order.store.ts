@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Order, CreateOrderInput, OrderStatus } from "@/types/api";
-import orderApi from "@/api/orders";
+import orderApi from "@/lib/api-clients/orders";
 
 interface OrderStore {
   // Estado

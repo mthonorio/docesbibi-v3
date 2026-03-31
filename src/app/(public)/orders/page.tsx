@@ -3,7 +3,7 @@ import { OrdersManager } from "@/components/sections/OrdersManager";
 
 export default function OrdersPage() {
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4">
+    <main className="min-h-screen bg-gray-50 py-24 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Título da Página */}
         <section className="mb-12">
