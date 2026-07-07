@@ -8,7 +8,7 @@ import { Card } from "@/components/atoms/Card";
 import { Alert } from "@/components/atoms/Alert";
 
 interface OrderItem {
-  product_id: number;
+  product_id: string;
   quantity: number;
 }
 
@@ -26,7 +26,7 @@ export function CreateOrderForm() {
 
   const [items, setItems] = useState<OrderItem[]>([]);
   const [newItem, setNewItem] = useState<OrderItem>({
-    product_id: 0,
+    product_id: "",
     quantity: 1,
   });
   const [successMessage, setSuccessMessage] = useState("");
@@ -42,9 +42,12 @@ export function CreateOrderForm() {
   };
 
   const handleAddItem = () => {
-    if (newItem.product_id > 0 && newItem.quantity > 0) {
+    // Validar UUID básico (não vazio e tamanho mínimo)
+    if (newItem.product_id.trim().length > 0 && newItem.quantity > 0) {
       setItems((prev) => [...prev, newItem]);
-      setNewItem({ product_id: 0, quantity: 1 });
+      setNewItem({ product_id: "", quantity: 1 });
+    } else {
+      alert("Por favor, preencha o UUID do produto e a quantidade");
     }
   };
 
@@ -189,7 +192,7 @@ export function CreateOrderForm() {
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="px-4 py-2 text-left font-medium">
-                      ID Produto
+                      UUID Produto
                     </th>
                     <th className="px-4 py-2 text-left font-medium">
                       Quantidade
@@ -200,7 +203,9 @@ export function CreateOrderForm() {
                 <tbody>
                   {items.map((item, index) => (
                     <tr key={index} className="border-t">
-                      <td className="px-4 py-2">{item.product_id}</td>
+                      <td className="px-4 py-2 font-mono text-xs break-all">
+                        {item.product_id}
+                      </td>
                       <td className="px-4 py-2">{item.quantity}</td>
                       <td className="px-4 py-2">
                         <button
@@ -223,21 +228,23 @@ export function CreateOrderForm() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  ID Produto *
+                  UUID Produto *
                 </label>
                 <input
-                  type="number"
-                  min="1"
+                  type="text"
                   value={newItem.product_id}
                   onChange={(e) =>
                     setNewItem({
                       ...newItem,
-                      product_id: parseInt(e.target.value) || 0,
+                      product_id: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                  placeholder="550e8400-e29b-41d4-a716-446655440000"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Cole o UUID do produto aqui
+                </p>
               </div>
 
               <div>

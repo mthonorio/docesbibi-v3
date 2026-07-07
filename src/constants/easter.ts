@@ -31,7 +31,7 @@ export const EASTER_MODELS: EasterModel[] = [
   {
     type: "400g",
     label: "400g Grande",
-    price: 80.0,
+    price: 90.0,
     flavorCount: 1,
     description: "Ovo grande e impressionante",
     image:

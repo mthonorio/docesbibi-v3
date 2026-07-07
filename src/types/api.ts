@@ -65,7 +65,7 @@ export interface CreateOrderInput {
   customer_address: string;
   notes?: string;
   items: Array<{
-    product_id: number;
+    product_id: string;
     quantity: number;
   }>;
 }

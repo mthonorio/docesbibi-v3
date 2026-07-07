@@ -50,6 +50,11 @@ VALUES
   ('Surpresa de Uva - 100 unidades', 'gourmet', 140.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/surpresa-uva%20(1).png', 'Docinho de leite com recheio frutal de uva. Uma surpresa deliciosa.'),
   ('Churros - 100 unidades', 'gourmet', 140.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/Generated%20Image%20March%2027,%202026%20-%204_30PM%20(1).png', 'Docinho com sabor de churros e doce de leite. Irresistível.'),
   ('Oreo - 100 unidades', 'gourmet', 140.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/Generated%20Image%20March%2027,%202026%20-%204_29PM%20(1).png', 'Docinho de chocolate com recheio de Oreo.'),
-  ('Ferreiro Rocher - 100 unidades', 'gourmet', 140.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ferreiro_rocher%20(1).png', 'Docinho com sabor de Ferreiro Rocher e Nutella. Encontro perfeito de texturas.')
+  ('Ferreiro Rocher - 100 unidades', 'gourmet', 140.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ferreiro_rocher%20(1).png', 'Docinho com sabor de Ferreiro Rocher e Nutella. Encontro perfeito de texturas.'),
+  -- Categoria: Easter (Ovos de Páscoa)
+  ('Ovo de Páscoa 150g', 'easter', 45.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_150g%20(1).png', 'Um único sabor de chocolate gourmet - Ovo de Páscoa 150g artesanal'),
+  ('Ovo de Páscoa Duo 150g', 'easter', 80.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_duo%20(1).png', 'Escolha dois sabores diferentes ou iguais - Ovo Duo 150g artesanal'),
+  ('Ovo de Páscoa Trio 50g', 'easter', 35.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_trio%20(1).png', 'Três sabores em tamanho miniatura - Ovo Trio 50g artesanal'),
+  ('Ovo de Páscoa Grande 400g', 'easter', 80.00, 'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_400g%20(1).png', 'Ovo grande e impressionante - Ovo 400g artesanal')
 ON CONFLICT DO NOTHING;
 

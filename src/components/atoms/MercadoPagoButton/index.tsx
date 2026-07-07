@@ -67,21 +67,17 @@ export function MercadoPagoButton({
         ),
       });
 
-      // Preparar payload
+      // Preparar payload com product_id vindo do banco (seguro)
       const payload = {
         items: cartItems.map((item) => ({
-          title: item.name || "Produto",
+          product_id: item.id, // UUID do produto vindo do banco
           quantity: item.quantity || 1,
-          unit_price: item.price || 0,
-          currency_id: "BRL",
-          description: `${item.name} - Doces Bibi`,
         })),
         payer: {
           email,
           name: customerName || "Cliente",
         },
         external_reference: orderId || `ORDER_${Date.now()}`,
-        auto_return: "approved",
       };
 
       logger.info(
@@ -90,10 +86,6 @@ export function MercadoPagoButton({
         {
           payloadSummary: {
             itemsCount: payload.items.length,
-            totalAmount: payload.items.reduce(
-              (sum, item) => sum + item.unit_price * item.quantity,
-              0,
-            ),
           },
         },
       );

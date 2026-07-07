@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { EasterModelType, CustomEasterEgg } from "@/types/api";
-import { EASTER_MODELS } from "@/constants/easter";
+import type { EasterProduct } from "./useEasterProducts";
 
 interface UseCustomEasterEggReturn {
   selectedModel: EasterModelType | null;
@@ -16,7 +16,50 @@ interface UseCustomEasterEggReturn {
   getPrice: () => number;
 }
 
-export function useCustomEasterEgg(): UseCustomEasterEggReturn {
+// Função auxiliar para obter flavorCount pelo EasterModelType
+function getFlavorCountByType(modelType: EasterModelType): number {
+  switch (modelType) {
+    case "trio_50g":
+      return 3;
+    case "duo_150g":
+      return 2;
+    case "150g":
+    case "400g":
+      return 1;
+    default:
+      return 1;
+  }
+}
+
+// Função auxiliar para encontrar produto pelo EasterModelType
+function findProductByModelType(
+  products: EasterProduct[],
+  modelType: EasterModelType,
+): EasterProduct | undefined {
+  const flavorCount = getFlavorCountByType(modelType);
+
+  return products.find((product) => {
+    const productFlavorCount = product.name.includes("Trio")
+      ? 3
+      : product.name.includes("Duo")
+        ? 2
+        : 1;
+
+    const sizeMatch =
+      (modelType === "150g" &&
+        product.name.includes("150g") &&
+        !product.name.includes("Duo")) ||
+      (modelType === "duo_150g" && product.name.includes("Duo")) ||
+      (modelType === "trio_50g" && product.name.includes("Trio")) ||
+      (modelType === "400g" && product.name.includes("400g"));
+
+    return productFlavorCount === flavorCount && sizeMatch;
+  });
+}
+
+export function useCustomEasterEgg(
+  products: EasterProduct[] = [],
+): UseCustomEasterEggReturn {
   const [selectedModel, setSelectedModel] = useState<EasterModelType | null>(
     null,
   );
@@ -30,10 +73,9 @@ export function useCustomEasterEgg(): UseCustomEasterEggReturn {
   const toggleFlavor = useCallback(
     (flavor: string) => {
       setSelectedFlavors((prev) => {
-        const modelConfig = EASTER_MODELS.find((m) => m.type === selectedModel);
-        if (!modelConfig) return prev;
+        if (!selectedModel) return prev;
 
-        const maxFlavors = modelConfig.flavorCount;
+        const maxFlavors = getFlavorCountByType(selectedModel);
 
         // Se já tem o sabor, remove
         if (prev.includes(flavor)) {
@@ -60,26 +102,28 @@ export function useCustomEasterEgg(): UseCustomEasterEggReturn {
     setSelectedFlavors([]);
   }, []);
 
-  const modelConfig = EASTER_MODELS.find((m) => m.type === selectedModel);
+  const selectedProduct =
+    selectedModel !== null
+      ? findProductByModelType(products, selectedModel)
+      : undefined;
+  const maxFlavors = selectedModel ? getFlavorCountByType(selectedModel) : 0;
   const isComplete =
-    selectedModel !== null &&
-    selectedFlavors.length === (modelConfig?.flavorCount || 0);
+    selectedModel !== null && selectedFlavors.length === maxFlavors;
 
   const getCustomEgg = useCallback((): CustomEasterEgg | null => {
-    if (!selectedModel || !isComplete) return null;
+    if (!selectedModel || !isComplete || !selectedProduct) return null;
 
-    const price = modelConfig?.price || 0;
     return {
       model: selectedModel,
       flavors: selectedFlavors,
-      price,
+      price: selectedProduct.price,
       quantity: 1,
     };
-  }, [selectedModel, isComplete, selectedFlavors, modelConfig]);
+  }, [selectedModel, isComplete, selectedFlavors, selectedProduct]);
 
   const getPrice = useCallback((): number => {
-    return modelConfig?.price || 0;
-  }, [modelConfig]);
+    return selectedProduct?.price || 0;
+  }, [selectedProduct]);
 
   return {
     selectedModel,
