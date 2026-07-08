@@ -12,10 +12,10 @@ import { getPaymentStatus, logger } from "@/lib/mercadopago";
  */
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const paymentId = params.id;
+    const { id: paymentId } = await params;
 
     if (!paymentId) {
       logger.error("GET_PAYMENT", "ID do pagamento não fornecido");

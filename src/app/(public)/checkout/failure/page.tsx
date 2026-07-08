@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   XCircle,
   AlertCircle,
@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logger } from "@/lib/mercadopago";
 
-export default function FailurePage() {
+function FailurePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orderNumber, setOrderNumber] = useState<string>("");
@@ -298,5 +298,13 @@ export default function FailurePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function FailurePage() {
+  return (
+    <Suspense fallback={null}>
+      <FailurePageContent />
+    </Suspense>
   );
 }

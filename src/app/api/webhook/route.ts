@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
-import { getPaymentStatus, mapPaymentStatus, logger } from "@/lib/mercadopago";
-import { supabase } from "@/lib/supabase-client";
+import {
+  getPaymentStatus,
+  mapPaymentStatusToOrderStatus,
+  validateWebhookSignature,
+  logger,
+} from "@/lib/mercadopago";
+import {
+  isPaymentEventProcessed,
+  recordPaymentEvent,
+  updateOrderPaymentStatus,
+} from "@/lib/orders-service";
 
 /**
  * POST /api/webhook
@@ -23,40 +32,30 @@ export async function POST(req: Request) {
   let paymentId = "";
 
   try {
-    // ========== 1. VALIDAR HEADERS ==========
+    // ========== 1. LER HEADERS ==========
     const xSignature = req.headers.get("x-signature");
     const xRequestId = req.headers.get("x-request-id");
-
     requestId = xRequestId || "UNKNOWN";
 
-    logger.info("WEBHOOK", "Recebendo notificação", {
-      requestId,
-      xSignature: xSignature?.substring(0, 20) + "...",
-    });
-
     // ========== 2. PARSE DO BODY ==========
+    const url = new URL(req.url);
     const body = await req.json();
 
-    logger.info("WEBHOOK", "Body recebido", {
+    logger.info("WEBHOOK", "Notificação recebida", {
+      requestId,
       type: body.type,
       dataId: body.data?.id,
     });
 
-    // ========== 3. VALIDAR TIPO DE NOTIFICAÇÃO ==========
+    // ========== 3. IGNORAR NOTIFICAÇÕES QUE NÃO SÃO DE PAGAMENTO ==========
     if (body.type !== "payment") {
-      logger.warn("WEBHOOK", "Notificação não é de pagamento", {
-        type: body.type,
-      });
-
       return NextResponse.json(
         { received: true, message: "Notificação ignorada (não é payment)" },
         { status: 200 },
       );
     }
 
-    // ========== 4. EXTRAIR ID DO PAGAMENTO ==========
     paymentId = body.data?.id?.toString();
-
     if (!paymentId) {
       logger.error("WEBHOOK", "ID do pagamento não encontrado em data.id");
       return NextResponse.json(
@@ -65,67 +64,83 @@ export async function POST(req: Request) {
       );
     }
 
-    logger.info("WEBHOOK", "ID do pagamento extraído", { paymentId });
+    // ========== 4. VALIDAR ASSINATURA ==========
+    // O data.id usado na assinatura vem preferencialmente da query string
+    // (é como o MP monta o manifesto); cai para o valor do body se ausente.
+    const dataIdForSignature = url.searchParams.get("data.id") || paymentId;
 
-    // ========== 5. CONSULTAR STATUS EM TEMPO REAL ==========
-    logger.info("WEBHOOK", "Consultando status real do pagamento", {
-      paymentId,
-    });
+    const signatureIsValid = validateWebhookSignature(
+      xSignature,
+      xRequestId,
+      dataIdForSignature,
+    );
 
+    if (!signatureIsValid) {
+      logger.error("WEBHOOK", "Assinatura inválida — requisição rejeitada", {
+        requestId,
+        paymentId,
+      });
+      return NextResponse.json({ error: "Assinatura inválida" }, { status: 401 });
+    }
+
+    // ========== 5. IDEMPOTÊNCIA ==========
+    // O Mercado Pago reenvia notificações até receber 200 de forma
+    // consistente; sem isso, uma reentrega reaplicaria a mudança de status.
+    if (await isPaymentEventProcessed(paymentId)) {
+      logger.info("WEBHOOK", "Evento já processado, ignorando reentrega", {
+        paymentId,
+      });
+      return NextResponse.json(
+        { received: true, message: "Já processado" },
+        { status: 200 },
+      );
+    }
+
+    // ========== 6. CONSULTAR STATUS REAL DO PAGAMENTO ==========
     const paymentStatus = await getPaymentStatus(paymentId);
 
     logger.info("WEBHOOK", "Status obtido com sucesso", {
       paymentId,
       status: paymentStatus.status,
-      amount: paymentStatus.transaction_amount,
       externalReference: paymentStatus.external_reference,
     });
 
-    // ========== 6. ATUALIZAR BANCO DE DADOS ==========
-    // IMPORTANTE: Aqui você deve atualizar seu banco de dados
-    // com o novo status do pagamento
-    // Exemplo com Supabase:
+    // ========== 7. ATUALIZAR O PEDIDO ==========
+    let updatedOrderId: string | null = null;
 
     if (paymentStatus.external_reference) {
-      try {
-        logger.info("WEBHOOK", "Atualizando order no banco", {
+      const orderStatus = mapPaymentStatusToOrderStatus(paymentStatus.status);
+
+      const updatedOrder = await updateOrderPaymentStatus({
+        externalReference: paymentStatus.external_reference,
+        paymentId,
+        status: orderStatus,
+      });
+
+      if (!updatedOrder) {
+        logger.error("WEBHOOK", "Nenhum pedido encontrado para este external_reference", {
           externalReference: paymentStatus.external_reference,
-          status: paymentStatus.status,
         });
-
-        // Tentar atualizar a order (substitua pelos nomes reais da sua tabela)
-        const { error: updateError } = await supabase
-          .from("orders")
-          .update({
-            status: paymentStatus.status,
-            payment_id: paymentId,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("external_reference", paymentStatus.external_reference);
-
-        if (updateError) {
-          logger.error("WEBHOOK", "Erro ao atualizar order", {
-            error: updateError.message,
-          });
-        } else {
-          logger.info("WEBHOOK", "Order atualizada com sucesso");
-        }
-      } catch (error) {
-        logger.error("WEBHOOK", "Erro ao processar atualização", {
-          error: error instanceof Error ? error.message : String(error),
+      } else {
+        updatedOrderId = updatedOrder.id;
+        logger.info("WEBHOOK", "Pedido atualizado", {
+          orderId: updatedOrder.id,
+          status: orderStatus,
         });
       }
+    } else {
+      logger.warn("WEBHOOK", "Notificação sem external_reference", { paymentId });
     }
 
-    // ========== 7. LOG DO PROCESSAMENTO ==========
-    logger.info("WEBHOOK", "Notificação processada com sucesso", {
-      paymentId,
+    // ========== 8. REGISTRAR EVENTO PROCESSADO ==========
+    await recordPaymentEvent({
+      mpPaymentId: paymentId,
+      orderId: updatedOrderId,
       status: paymentStatus.status,
-      requestId,
     });
 
-    // ========== 8. RETORNAR HTTP 200 ==========
-    // IMPORTANTE: O Mercado Pago requer HTTP 200 para confirmar recebimento
+    // ========== 9. RETORNAR HTTP 200 ==========
+    // O Mercado Pago requer HTTP 200 para confirmar recebimento.
     return NextResponse.json(
       {
         received: true,
@@ -164,7 +179,7 @@ export async function GET() {
     {
       status: "ok",
       message: "Webhook do Mercado Pago está ativo",
-      url: process.env.NEXT_PUBLIC_API_URL + "/api/webhook",
+      url: process.env.NEXT_PUBLIC_BASE_URL + "/api/webhook",
     },
     { status: 200 },
   );

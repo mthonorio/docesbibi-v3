@@ -8,18 +8,24 @@ import { Button } from "@/components/atoms/Button";
 import { Alert } from "@/components/atoms/Alert";
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  pendente: "bg-yellow-100 text-yellow-800",
-  confirmado: "bg-blue-100 text-blue-800",
-  enviado: "bg-purple-100 text-purple-800",
-  entregue: "bg-green-100 text-green-800",
+  novo_pedido: "bg-yellow-100 text-yellow-800",
+  aguardando_pagamento: "bg-orange-100 text-orange-800",
+  pago: "bg-blue-100 text-blue-800",
+  em_producao: "bg-indigo-100 text-indigo-800",
+  pronto_retirada: "bg-teal-100 text-teal-800",
+  saiu_entrega: "bg-purple-100 text-purple-800",
+  finalizado: "bg-green-100 text-green-800",
   cancelado: "bg-red-100 text-red-800",
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  pendente: "Pendente",
-  confirmado: "Confirmado",
-  enviado: "Enviado",
-  entregue: "Entregue",
+  novo_pedido: "Novo Pedido",
+  aguardando_pagamento: "Aguardando Pagamento",
+  pago: "Pago",
+  em_producao: "Em Produção",
+  pronto_retirada: "Pronto para Retirada",
+  saiu_entrega: "Saiu para Entrega",
+  finalizado: "Finalizado",
   cancelado: "Cancelado",
 };
 

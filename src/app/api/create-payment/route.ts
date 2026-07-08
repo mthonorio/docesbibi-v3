@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
+import {
+  createOrder,
+  setOrderExternalReference,
+  markOrderAsFailed,
+} from "@/lib/orders-service";
 
 // ========== INICIALIZAÇÃO SUPABASE ==========
 const supabase = createClient(
@@ -27,7 +32,8 @@ const CreatePreferenceSchema = z.object({
       })
       .optional(),
   }),
-  external_reference: z.string().optional(),
+  customer_address: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 type CreatePreferenceInput = z.infer<typeof CreatePreferenceSchema>;
@@ -124,10 +130,14 @@ function validateProductsExist(
  * {
  *   items: [{ product_id (UUID), quantity }],
  *   payer: { email, name?, phone? },
- *   external_reference?: "ID do pedido"
+ *   customer_address?: string,
+ *   notes?: string
  * }
  *
- * Retorna: { init_point, id, external_reference }
+ * Cria o pedido no banco (status "aguardando_pagamento") e usa o próprio
+ * ID do pedido como external_reference da preferência do Mercado Pago.
+ *
+ * Retorna: { init_point, preference_id, external_reference, order_id }
  */
 export async function POST(req: Request) {
   try {
@@ -177,6 +187,26 @@ export async function POST(req: Request) {
       );
     }
 
+    // ========== CRIAR O PEDIDO ANTES DE COBRAR ==========
+    // O pedido nasce aqui, com status "aguardando_pagamento" — é o que o
+    // webhook (/api/webhook) vai localizar e atualizar quando o Mercado
+    // Pago confirmar o pagamento. Sem isso, pagar não gerava pedido algum.
+    const order = await createOrder(
+      {
+        customer_name: validData.payer.name || "Cliente",
+        customer_email: validData.payer.email,
+        customer_phone: validData.payer.phone?.number,
+        customer_address: validData.customer_address,
+        notes: validData.notes,
+        items: validData.items,
+      },
+      { status: "aguardando_pagamento" },
+    );
+
+    await setOrderExternalReference(order.id, order.id);
+
+    console.log("[MP Payment] Pedido criado", { orderId: order.id });
+
     // Preparar back_urls com baseUrl validada
     const backUrls = {
       success: `${baseUrl}/checkout/success`,
@@ -210,7 +240,7 @@ export async function POST(req: Request) {
         name: validData.payer.name,
         phone: validData.payer.phone,
       },
-      external_reference: validData.external_reference,
+      external_reference: order.id,
       back_urls: backUrls,
       statement_descriptor: "DOCES BIBI",
     };
@@ -223,11 +253,22 @@ export async function POST(req: Request) {
       ),
     });
 
-    const response = await preference.create({
-      body: preferenceData,
-    });
+    let response;
+    try {
+      response = await preference.create({ body: preferenceData });
+    } catch (mpError) {
+      // O pedido já existe no banco — se o Mercado Pago falhar em gerar a
+      // preferência, não deixamos o pedido preso em "aguardando_pagamento".
+      console.error("[MP Payment] Falha ao criar preferência, cancelando pedido", {
+        orderId: order.id,
+        error: mpError instanceof Error ? mpError.message : String(mpError),
+      });
+      await markOrderAsFailed(order.id);
+      throw mpError;
+    }
 
     console.log("[MP Payment] Preferência criada com sucesso", {
+      orderId: order.id,
       preferenceId: response.id,
       initPoint: response.init_point,
     });
@@ -238,6 +279,7 @@ export async function POST(req: Request) {
         init_point: response.init_point,
         preference_id: response.id,
         external_reference: response.external_reference,
+        order_id: order.id,
       },
       { status: 201 },
     );

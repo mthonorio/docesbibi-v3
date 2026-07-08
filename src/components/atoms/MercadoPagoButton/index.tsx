@@ -8,7 +8,6 @@ import { logger } from "@/lib/mercadopago";
 interface MercadoPagoButtonProps {
   email?: string;
   customerName?: string;
-  orderId?: string;
   onError?: (error: string) => void;
   onLoading?: (isLoading: boolean) => void;
   className?: string;
@@ -17,13 +16,12 @@ interface MercadoPagoButtonProps {
 /**
  * Componente: MercadoPagoButton
  * - Integra com o carrinho global
- * - Cria preferência de pagamento
+ * - Cria preferência de pagamento (o servidor cria o pedido correspondente)
  * - Redireciona para checkout do Mercado Pago
  */
 export function MercadoPagoButton({
   email = "",
   customerName = "",
-  orderId = "",
   onError,
   onLoading,
   className = "",
@@ -67,7 +65,9 @@ export function MercadoPagoButton({
         ),
       });
 
-      // Preparar payload com product_id vindo do banco (seguro)
+      // Preparar payload com product_id vindo do banco (seguro).
+      // O pedido é criado no servidor por /api/create-payment — o ID do
+      // pedido (e, portanto, o external_reference da cobrança) vem na resposta.
       const payload = {
         items: cartItems.map((item) => ({
           product_id: item.id, // UUID do produto vindo do banco
@@ -77,7 +77,6 @@ export function MercadoPagoButton({
           email,
           name: customerName || "Cliente",
         },
-        external_reference: orderId || `ORDER_${Date.now()}`,
       };
 
       logger.info(

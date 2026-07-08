@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   CheckCircle,
   Package,
@@ -19,7 +19,7 @@ interface PaymentInfo {
   status: string;
 }
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orderNumber, setOrderNumber] = useState<string>("");
@@ -385,5 +385,13 @@ export default function SuccessPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <SuccessPageContent />
+    </Suspense>
   );
 }

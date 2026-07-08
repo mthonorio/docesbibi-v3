@@ -1,16 +1,20 @@
 import { CreateOrderForm } from "@/components/forms/CreateOrderForm";
 import { OrdersManager } from "@/components/sections/OrdersManager";
+import { SignOutButton } from "@/components/molecules/SignOutButton";
 
 export default function OrdersPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-24 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Título da Página */}
-        <section className="mb-12">
-          <h1 className="text-4xl font-bold mb-2">Gerenciador de Pedidos</h1>
-          <p className="text-gray-600">
-            Crie, visualize e gerencie seus pedidos com facilidade.
-          </p>
+        <section className="mb-12 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Gerenciador de Pedidos</h1>
+            <p className="text-gray-600">
+              Crie, visualize e gerencie seus pedidos com facilidade.
+            </p>
+          </div>
+          <SignOutButton />
         </section>
 
         {/* Grid com Formulário e Gerenciador */}

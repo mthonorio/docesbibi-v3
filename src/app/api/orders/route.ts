@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { createOrder } from "@/lib/orders-service";
 import type { Order, CreateOrderInput, ApiResponse } from "@/types/api";
 
 // GET /api/orders - Listar todos os pedidos com filtro opcional
@@ -65,18 +66,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/orders - Criar novo pedido
+// POST /api/orders - Criar novo pedido (pedido manual, sem pagamento online)
 export async function POST(request: NextRequest) {
   try {
     const body: CreateOrderInput = await request.json();
 
-    // Validação
-    if (!body.customer_name || !body.customer_email || !body.customer_address) {
+    if (!body.customer_name || !body.customer_email) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "customer_name, customer_email e customer_address são obrigatórios",
+          error: "customer_name e customer_email são obrigatórios",
         },
         { status: 400 },
       );
@@ -89,68 +88,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Criar pedido
-    const orderResult = await query(
-      `INSERT INTO orders (customer_name, customer_email, customer_phone, customer_address, notes, status)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [
-        body.customer_name,
-        body.customer_email,
-        body.customer_phone || null,
-        body.customer_address,
-        body.notes || null,
-        "pendente",
-      ],
-    );
-
-    const orderId = orderResult.rows[0].id;
-
-    // Adicionar itens do pedido
-    for (const item of body.items) {
-      // Buscar produto para obter nome e preço
-      const productResult = await query(
-        `SELECT id, name, price FROM products WHERE id = $1`,
-        [item.product_id],
-      );
-
-      if (productResult.rows.length === 0) {
-        throw new Error(`Produto com ID ${item.product_id} não encontrado`);
-      }
-
-      const product = productResult.rows[0];
-      const subtotal = product.price * item.quantity;
-
-      await query(
-        `INSERT INTO order_items (order_id, product_id, product_name, price, quantity, subtotal)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          orderId,
-          product.id,
-          product.name,
-          product.price,
-          item.quantity,
-          subtotal,
-        ],
-      );
-    }
-
-    // Buscar pedido completo com itens
-    const completedOrder = await query(`SELECT * FROM orders WHERE id = $1`, [
-      orderId,
-    ]);
-
-    const itemsResult = await query(
-      `SELECT * FROM order_items WHERE order_id = $1`,
-      [orderId],
-    );
+    const order = await createOrder(body);
 
     const response: ApiResponse<Order> = {
       success: true,
-      data: {
-        ...completedOrder.rows[0],
-        items: itemsResult.rows,
-      },
+      data: order,
     };
 
     return NextResponse.json(response, { status: 201 });

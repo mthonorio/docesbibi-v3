@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Clock,
   AlertCircle,
@@ -13,7 +13,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logger } from "@/lib/mercadopago";
 
-export default function PendingPage() {
+function PendingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orderNumber, setOrderNumber] = useState<string>("");
@@ -307,5 +307,13 @@ export default function PendingPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function PendingPage() {
+  return (
+    <Suspense fallback={null}>
+      <PendingPageContent />
+    </Suspense>
   );
 }

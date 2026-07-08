@@ -152,7 +152,6 @@ export function MercadoPagoCheckoutForm() {
             <MercadoPagoButton
               email={formData.email}
               customerName={formData.name}
-              orderId={`ORDER_${Date.now()}`}
               onLoading={setIsLoading}
               className="mt-6"
             />

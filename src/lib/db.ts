@@ -13,12 +13,17 @@ if (!connectionString) {
 
 console.log("📊 Initializing PostgreSQL connection pool...");
 
+// O Supabase sempre exige SSL. Removemos "sslmode" da connection string
+// porque versões recentes do pg tratam sslmode=require como alias de
+// verify-full (validação completa da cadeia de certificados) e isso
+// ignora a opção `ssl` abaixo, quebrando a conexão com
+// "self-signed certificate in certificate chain".
+const connectionUrl = new URL(connectionString);
+connectionUrl.searchParams.delete("sslmode");
+
 const pool = new Pool({
-  connectionString,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+  connectionString: connectionUrl.toString(),
+  ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

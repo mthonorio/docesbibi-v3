@@ -1,4 +1,5 @@
 import { MercadoPagoConfig, Payment } from "mercadopago";
+import crypto from "node:crypto";
 
 // ========== INICIALIZAÇÃO DO CLIENTE ==========
 export const mercadopagoClient = new MercadoPagoConfig({
@@ -86,42 +87,101 @@ export async function getPaymentStatus(
 }
 
 /**
- * Valida a assinatura de um webhook
- * @param xSignature Header x-signature do Mercado Pago
- * @param requestId Header x-request-id do Mercado Pago
- * @param body Body da requisição
+ * Valida a assinatura HMAC de um webhook do Mercado Pago.
+ * Ref: https://www.mercadopago.com.br/developers/pt/docs/checkout-api/webhooks/how-to-configure-notifications
+ *
+ * @param xSignature Header x-signature (formato "ts=...,v1=...")
+ * @param xRequestId Header x-request-id
+ * @param dataId ID do recurso notificado (data.id da query string ou do body)
  * @returns True se a assinatura é válida
  */
 export function validateWebhookSignature(
-  xSignature: string,
-  requestId: string,
-  body: string,
+  xSignature: string | null,
+  xRequestId: string | null,
+  dataId: string,
 ): boolean {
-  try {
-    // O secret é uma combinação do Access Token e da data/hora
-    // Ref: https://developer.mercadopago.com/pt_BR/guides/webhooks/general-considerations
+  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
 
-    const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET || "";
-    if (!secret) {
-      logger.warn("MP_WEBHOOK", "MERCADO_PAGO_WEBHOOK_SECRET não configurado");
-      // Em desenvolvimento, podemos permitir sem validação
-      return true;
+  if (!secret) {
+    // Sem secret configurado não há como validar. Em produção isso deve
+    // bloquear o webhook; em dev, deixamos passar para facilitar testes locais.
+    logger.warn(
+      "MP_WEBHOOK",
+      "MERCADO_PAGO_WEBHOOK_SECRET não configurado — webhook não pode ser validado",
+    );
+    return process.env.NODE_ENV !== "production";
+  }
+
+  if (!xSignature || !xRequestId) {
+    logger.error("MP_WEBHOOK", "Headers x-signature ou x-request-id ausentes");
+    return false;
+  }
+
+  try {
+    const parts = Object.fromEntries(
+      xSignature.split(",").map((pair) => {
+        const [key, value] = pair.split("=");
+        return [key?.trim(), value?.trim()];
+      }),
+    );
+
+    const ts = parts.ts;
+    const receivedHash = parts.v1;
+
+    if (!ts || !receivedHash) {
+      logger.error("MP_WEBHOOK", "Formato de x-signature inválido", {
+        xSignature,
+      });
+      return false;
     }
 
-    // A validação real seria implementada com crypto
-    // Por enquanto, apenas logamos para fins de desenvolvimento
-    logger.info("MP_WEBHOOK", "Validando assinatura do webhook", {
-      requestId,
-      signatureLength: xSignature.length,
-    });
+    const manifest = `id:${dataId.toLowerCase()};request-id:${xRequestId};ts:${ts};`;
+    const computedHash = crypto
+      .createHmac("sha256", secret)
+      .update(manifest)
+      .digest("hex");
 
-    return true;
+    const receivedBuffer = Buffer.from(receivedHash);
+    const computedBuffer = Buffer.from(computedHash);
+
+    const isValid =
+      receivedBuffer.length === computedBuffer.length &&
+      crypto.timingSafeEqual(receivedBuffer, computedBuffer);
+
+    if (!isValid) {
+      logger.error("MP_WEBHOOK", "Assinatura inválida", {
+        requestId: xRequestId,
+      });
+    }
+
+    return isValid;
   } catch (error) {
     logger.error("MP_WEBHOOK", "Erro ao validar assinatura", {
       error: error instanceof Error ? error.message : String(error),
     });
     return false;
   }
+}
+
+/**
+ * Mapeia o status de pagamento do MP para o fluxo de status interno do pedido.
+ */
+export function mapPaymentStatusToOrderStatus(
+  mpStatus: string,
+): "pago" | "cancelado" | "aguardando_pagamento" {
+  const map: Record<string, "pago" | "cancelado" | "aguardando_pagamento"> = {
+    approved: "pago",
+    rejected: "cancelado",
+    cancelled: "cancelado",
+    refunded: "cancelado",
+    charged_back: "cancelado",
+    pending: "aguardando_pagamento",
+    authorized: "aguardando_pagamento",
+    in_process: "aguardando_pagamento",
+    in_mediation: "aguardando_pagamento",
+  };
+
+  return map[mpStatus] || "aguardando_pagamento";
 }
 
 /**

@@ -27,10 +27,13 @@ export interface UpdateProductInput {
 
 // ========== ORDERS ==========
 export type OrderStatus =
-  | "pendente"
-  | "confirmado"
-  | "enviado"
-  | "entregue"
+  | "novo_pedido"
+  | "aguardando_pagamento"
+  | "pago"
+  | "em_producao"
+  | "pronto_retirada"
+  | "saiu_entrega"
+  | "finalizado"
   | "cancelado";
 
 export interface OrderItem {
@@ -49,10 +52,12 @@ export interface Order {
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  customer_address: string;
+  customer_address?: string;
   total_price: number;
   status: OrderStatus;
   notes?: string;
+  payment_id?: string;
+  external_reference?: string;
   items?: OrderItem[];
   created_at?: string;
   updated_at?: string;
@@ -62,7 +67,7 @@ export interface CreateOrderInput {
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  customer_address: string;
+  customer_address?: string;
   notes?: string;
   items: Array<{
     product_id: string;
