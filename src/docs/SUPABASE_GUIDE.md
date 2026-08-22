@@ -1,5 +1,10 @@
 # Supabase Integration Guide
 
+> ⚠️ **Histórico — não se aplica mais.** O projeto saiu do Supabase por
+> completo (banco, Auth e Storage). Ver [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md)
+> (banco/storage) e [AUTH_GUIDE.md](./AUTH_GUIDE.md) (login). Mantido só como
+> registro do que existia antes.
+
 ## Environment Variables
 
 Suas variáveis de ambiente já foram configuradas em `.env`:

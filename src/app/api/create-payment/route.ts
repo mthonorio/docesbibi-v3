@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
+import { query } from "@/lib/db";
 import {
   createOrder,
   setOrderExternalReference,
   markOrderAsFailed,
 } from "@/lib/orders-service";
-
-// ========== INICIALIZAÇÃO SUPABASE ==========
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-);
 
 // ========== SCHEMAS DE VALIDAÇÃO ==========
 const CartItemSchema = z.object({
@@ -65,27 +59,20 @@ async function getProductsFromDatabase(
   });
 
   try {
-    const { data, error } = await supabase
-      .from("products")
-      .select("id, name, price, description")
-      .in("id", productIds);
-
-    if (error) {
-      console.error("[MP Payment] Erro ao buscar produtos:", error);
-      throw new Error(`Erro ao buscar produtos: ${error.message}`);
-    }
+    const result = await query(
+      `SELECT id, name, price, description FROM products WHERE id = ANY($1::uuid[])`,
+      [productIds],
+    );
 
     const productsMap = new Map<string, ProductFromDB>();
-    if (data) {
-      data.forEach((product) => {
-        productsMap.set(product.id, {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          description: product.description,
-        });
+    result.rows.forEach((product) => {
+      productsMap.set(product.id, {
+        id: product.id,
+        name: product.name,
+        price: Number(product.price),
+        description: product.description,
       });
-    }
+    });
 
     console.log("[MP Payment] Produtos encontrados:", {
       count: productsMap.size,

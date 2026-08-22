@@ -1,4 +1,5 @@
 import type { EasterModel, EasterFlavor } from "@/types/api";
+import { r2Image } from "@/lib/images";
 
 export const EASTER_MODELS: EasterModel[] = [
   {
@@ -7,8 +8,7 @@ export const EASTER_MODELS: EasterModel[] = [
     price: 45.0,
     flavorCount: 1,
     description: "Um único sabor de chocolate gourmet",
-    image:
-      "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_150g%20(1).png",
+    image: r2Image("ovo_150g%20(1).png"),
   },
   {
     type: "duo_150g",
@@ -16,8 +16,7 @@ export const EASTER_MODELS: EasterModel[] = [
     price: 80.0,
     flavorCount: 2,
     description: "Escolha dois sabores diferentes ou iguais",
-    image:
-      "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_duo%20(1).png",
+    image: r2Image("ovo_duo%20(1).png"),
   },
   {
     type: "trio_50g",
@@ -25,8 +24,7 @@ export const EASTER_MODELS: EasterModel[] = [
     price: 35.0,
     flavorCount: 3,
     description: "Três sabores em tamanho miniatura",
-    image:
-      "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_trio%20(1).png",
+    image: r2Image("ovo_trio%20(1).png"),
   },
   {
     type: "400g",
@@ -34,8 +32,7 @@ export const EASTER_MODELS: EasterModel[] = [
     price: 90.0,
     flavorCount: 1,
     description: "Ovo grande e impressionante",
-    image:
-      "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/ovo_400g%20(1).png",
+    image: r2Image("ovo_400g%20(1).png"),
   },
 ];
 

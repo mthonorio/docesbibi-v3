@@ -1,6 +1,12 @@
 -- ============================================
 -- FASE 1 (F1-6): Row Level Security
 -- ============================================
+-- NÃO SE APLICA MAIS: o projeto saiu do Supabase (banco agora é Postgres
+-- gerenciado pelo próprio Railway). RLS/policies são um recurso do
+-- PostgREST do Supabase — sem ele, todo acesso ao banco passa pelo `pg.Pool`
+-- do app (DATABASE_URL), que já é a única porta de entrada. Mantido aqui só
+-- como registro histórico do schema; não rodar contra o banco do Railway.
+--
 -- Rode este arquivo inteiro no SQL Editor do Supabase (ou psql $DATABASE_URL -f sql/003_rls_policies.sql).
 -- É seguro rodar mais de uma vez (idempotente).
 --

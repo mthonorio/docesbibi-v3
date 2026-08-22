@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import type { ApiResponse } from "@/types/api";
 
 export interface EasterProduct {
   id: string;
@@ -22,22 +22,17 @@ export function useEasterProducts() {
         setLoading(true);
         setError(null);
 
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-        );
+        const response = await fetch("/api/products?category=easter");
+        const result: ApiResponse<EasterProduct[]> = await response.json();
 
-        const { data, error: supabaseError } = await supabase
-          .from("products")
-          .select("id, name, price, image, description")
-          .eq("category", "easter")
-          .order("price", { ascending: true });
-
-        if (supabaseError) {
-          throw new Error(`Erro ao buscar produtos: ${supabaseError.message}`);
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Erro ao buscar produtos");
         }
 
-        setProducts(data || []);
+        const sorted = [...(result.data || [])].sort(
+          (a, b) => a.price - b.price,
+        );
+        setProducts(sorted);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Erro ao buscar produtos";

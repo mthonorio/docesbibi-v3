@@ -13,17 +13,27 @@ if (!connectionString) {
 
 console.log("📊 Initializing PostgreSQL connection pool...");
 
-// O Supabase sempre exige SSL. Removemos "sslmode" da connection string
-// porque versões recentes do pg tratam sslmode=require como alias de
-// verify-full (validação completa da cadeia de certificados) e isso
-// ignora a opção `ssl` abaixo, quebrando a conexão com
-// "self-signed certificate in certificate chain".
+// Removemos "sslmode" da connection string porque versões recentes do pg
+// tratam sslmode=require como alias de verify-full (validação completa da
+// cadeia de certificados), o que ignora a opção `ssl` abaixo e quebra a
+// conexão com "self-signed certificate in certificate chain" em provedores
+// com certificado autoassinado (ex.: Supabase).
+//
+// O Postgres do próprio Railway (rede interna, host *.railway.internal) não
+// fala SSL, então SSL é opt-in: liga automaticamente se a connection string
+// tiver sslmode=require/verify-*, ou manualmente via DATABASE_SSL=true (útil
+// se um dia a conexão for por fora da rede interna do Railway).
 const connectionUrl = new URL(connectionString);
+const sslMode = connectionUrl.searchParams.get("sslmode");
 connectionUrl.searchParams.delete("sslmode");
+
+const useSSL = sslMode
+  ? sslMode !== "disable"
+  : process.env.DATABASE_SSL === "true";
 
 const pool = new Pool({
   connectionString: connectionUrl.toString(),
-  ssl: { rejectUnauthorized: false },
+  ssl: useSSL ? { rejectUnauthorized: false } : undefined,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

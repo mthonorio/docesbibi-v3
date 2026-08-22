@@ -1,5 +1,10 @@
 # Setup da API de Produtos
 
+> ⚠️ **Parcialmente desatualizado.** As referências ao Supabase Dashboard
+> abaixo não se aplicam mais — o banco é Postgres do Railway, gerenciado via
+> `sql/*.sql` + `psql`/`DATABASE_URL` (ver [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md)).
+> O restante (rotas, contrato da API) continua válido.
+
 ## 1. Variáveis de Ambiente
 
 Adicione ao seu `.env`:

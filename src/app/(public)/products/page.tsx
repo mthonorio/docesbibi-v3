@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CheckCircle } from "lucide-react";
 import { ProductsGrid } from "@/components/molecules/ProductsGrid";
 import { useCartStore } from "@/store/cart.store";
-import { useSupabaseData } from "@/hooks/useSupabase";
+import { useProducts } from "@/hooks/useProducts";
 import type { Product } from "@/types/api";
 
 export default function ProductsPage() {
@@ -15,12 +15,11 @@ export default function ProductsPage() {
 
   const { addToCart } = useCartStore();
 
-  // Buscar produtos diretamente do Supabase
   const {
     data: products,
     loading,
     error,
-  } = useSupabaseData<Product>("products");
+  } = useProducts<Product>();
 
   const showToast = (message: string) => {
     setToast({ message, show: true });

@@ -1,3 +1,15 @@
+-- ATENÇÃO: os dados de exemplo abaixo têm URLs de imagem apontando pro
+-- Supabase Storage antigo (nibzwcpdpqzwigkocgio.supabase.co), que não existe
+-- mais depois da migração pro Cloudflare R2. Isso só importa pra quem rodar
+-- este arquivo do zero (setup local/novo ambiente) — depois de migrar as
+-- imagens (scripts/migrate-images-to-r2.mjs), rode:
+--   UPDATE products SET image = REPLACE(
+--     image,
+--     'https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/',
+--     '<NEXT_PUBLIC_R2_PUBLIC_URL>/images/'
+--   );
+-- Ver src/docs/RAILWAY_DEPLOY.md.
+
 -- Criar tabela de produtos
 CREATE TABLE IF NOT EXISTS products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

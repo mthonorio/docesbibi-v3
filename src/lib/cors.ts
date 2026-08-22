@@ -3,15 +3,20 @@ import { NextResponse } from "next/server";
 const DEV_ORIGINS = ["http://localhost:3000"];
 
 /**
- * Origens confiáveis: o site em produção (NEXT_PUBLIC_BASE_URL), o preview
- * atual da Vercel (VERCEL_URL) e localhost em desenvolvimento. Nunca "*" —
- * as rotas /api/orders e /api/create-payment escrevem dados.
+ * Origens confiáveis: o site em produção (NEXT_PUBLIC_BASE_URL), o domínio
+ * público gerado pelo Railway (RAILWAY_PUBLIC_DOMAIN) ou pela Vercel
+ * (VERCEL_URL, mantido por compatibilidade caso algum preview ainda rode
+ * lá), e localhost em desenvolvimento. Nunca "*" — as rotas /api/orders e
+ * /api/create-payment escrevem dados.
  */
 function getAllowedOrigins(): string[] {
   const origins = new Set<string>(DEV_ORIGINS);
 
   if (process.env.NEXT_PUBLIC_BASE_URL) {
     origins.add(process.env.NEXT_PUBLIC_BASE_URL);
+  }
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    origins.add(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
   }
   if (process.env.VERCEL_URL) {
     origins.add(`https://${process.env.VERCEL_URL}`);

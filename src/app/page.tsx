@@ -8,8 +8,9 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { ProductsGrid } from "@/components/molecules/ProductsGrid";
 import { useCartStore } from "@/store/cart.store";
-import { useSupabaseData } from "@/hooks/useSupabase";
+import { useProducts } from "@/hooks/useProducts";
 import { categoryImages } from "@/constants/products";
+import { r2Image } from "@/lib/images";
 import type { Product } from "@/types/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,15 +28,13 @@ export default function Home() {
     {
       id: 1,
       title: "Coleção Especial de Páscoa",
-      image:
-        "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/banner_easter.png",
+      image: r2Image("banner_easter.png"),
       link: "/easter",
     },
     {
       id: 2,
       title: "Coleção Especial de Páscoa 2",
-      image:
-        "https://nibzwcpdpqzwigkocgio.supabase.co/storage/v1/object/public/images/banner_easter_2.png",
+      image: r2Image("banner_easter_2.png"),
       link: "/easter",
     },
   ];
@@ -43,12 +42,11 @@ export default function Home() {
   // Use global stores
   const { addToCart } = useCartStore();
 
-  // Buscar produtos diretamente do Supabase
   const {
     data: products,
     loading,
     error,
-  } = useSupabaseData<Product>("products");
+  } = useProducts<Product>();
 
   const showToast = (message: string) => {
     setToast({ message, show: true });

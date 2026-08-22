@@ -1,5 +1,10 @@
 # Migração para Supabase - Status
 
+> ⚠️ **Histórico — não se aplica mais.** O projeto migrou de volta pra um
+> Postgres próprio (Railway) e saiu do Supabase por completo. Ver
+> [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md). Mantido só como registro da
+> migração original.
+
 ## ✅ Migrações Concluídas
 
 ### 1. Homepage (src/app/page.tsx)

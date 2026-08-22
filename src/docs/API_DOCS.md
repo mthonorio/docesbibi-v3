@@ -275,13 +275,13 @@ await productApi.delete(1);
 
 ## Setup do Banco de Dados
 
-1. Execute o script SQL em `sql/init.sql` no seu banco PostgreSQL:
+1. Execute os scripts SQL em `sql/*.sql` (em ordem) no Postgres do Railway:
 
-```sql
--- Conecte ao seu banco Supabase e execute o conteúdo de sql/init.sql
+```bash
+psql $DATABASE_URL -f sql/init.sql
+psql $DATABASE_URL -f sql/orders.sql
+# ... demais arquivos numerados, ver src/docs/RAILWAY_DEPLOY.md
 ```
-
-2. Ou use a interface web do Supabase para executar as queries.
 
 ---
 

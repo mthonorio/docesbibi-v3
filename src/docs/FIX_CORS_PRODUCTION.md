@@ -1,5 +1,10 @@
 # Fix CORS Error em Produção - Guia Definitivo
 
+> ⚠️ **Histórico — não se aplica mais.** Escrito para a Vercel + Supabase;
+> o deploy agora é no Railway (processo Node de vida longa, não serverless)
+> e o banco voltou a ser um Postgres próprio. Ver
+> [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md) e [DEPLOY_GUIDE.md](./DEPLOY_GUIDE.md).
+
 ## ❌ Problema Original
 
 Em produção (Vercel), está ocorrendo:

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signOut } from "next-auth/react";
 import { Button } from "@/components/atoms/Button";
 
 export function SignOutButton() {
@@ -11,8 +11,7 @@ export function SignOutButton() {
 
   const handleSignOut = async () => {
     setLoading(true);
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOut({ redirect: false });
     router.push("/admin/login");
     router.refresh();
   };
