@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { Order, CreateOrderInput, OrderStatus } from "@/types/api";
+import type {
+  Order,
+  CreateOrderInput,
+  UpdateOrderInput,
+  OrderStatus,
+} from "@/types/api";
 import orderApi from "@/lib/api-clients/orders";
 
 interface OrderStore {
@@ -21,7 +26,7 @@ interface OrderStore {
   // Actions - Criação/Atualização
   create: (order: CreateOrderInput) => Promise<Order>;
   updateStatus: (id: string, status: OrderStatus) => Promise<void>;
-  update: (id: string, data: Partial<Order>) => Promise<void>;
+  update: (id: string, data: UpdateOrderInput) => Promise<void>;
 
   // Actions - Deleção
   delete: (id: string) => Promise<void>;
@@ -32,7 +37,7 @@ interface OrderStore {
   reset: () => void;
 }
 
-export const useOrderStore = create<OrderStore>((set, get) => ({
+export const useOrderStore = create<OrderStore>((set) => ({
   // Estado inicial
   orders: [],
   currentOrder: null,
@@ -103,10 +108,10 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
   },
 
   // Atualizar pedido
-  update: async (id: string, data: Partial<Order>) => {
+  update: async (id: string, data: UpdateOrderInput) => {
     try {
       set({ loading: true, error: null });
-      const updated = await orderApi.update(id, data as any);
+      const updated = await orderApi.update(id, data);
       set((state) => ({
         orders: state.orders.map((o) => (o.id === id ? updated : o)),
         currentOrder:

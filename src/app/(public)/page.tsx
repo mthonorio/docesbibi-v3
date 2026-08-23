@@ -380,7 +380,7 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="text-marrom-600 mb-6 italic">
-                  "{testimonial.text}"
+                  &ldquo;{testimonial.text}&rdquo;
                 </p>
                 <p className="font-semibold text-marrom-900">
                   {testimonial.name}

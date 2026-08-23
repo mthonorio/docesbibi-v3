@@ -1,0 +1,102 @@
+# Ambiente local para TESTES — não é usado no deploy (Railway usa o
+# Dockerfile diretamente, ver src/docs/RAILWAY_DEPLOY.md). Resolve o
+# problema real que motivou isso: o Postgres do Supabase em .env.local
+# ficou inacessível (ENOTFOUND), bloqueando qualquer teste ponta a ponta.
+#
+# Uso:
+#   docker compose up -d              # sobe Postgres + cria a usuária de teste
+#   pnpm dev                          # app roda no host, não em container —
+#                                      # ver nota abaixo sobre por quê
+#   docker compose --profile full up  # opcionalmente também sobe o app,
+#                                      # buildado com o Dockerfile de produção
+#                                      # (útil pra validar a imagem antes do
+#                                      # deploy, não pra iterar em dev)
+#
+# O app não roda em container por padrão de propósito: a própria
+# documentação do Next.js recomenda `next dev` direto no host em vez de
+# Docker no Windows/Mac, por performance do watcher de arquivos (ver
+# node_modules/next/dist/docs/.../self-hosting.md, citado no CLAUDE.md).
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: docesbibi
+      POSTGRES_PASSWORD: docesbibi
+      POSTGRES_DB: docesbibi
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - docesbibi-pgdata:/var/lib/postgresql/data
+      - ./sql:/sql:ro
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docesbibi -d docesbibi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Container de uso único: cria a conta de teste da gestora
+  # (test@docesbibi.com.br / teste1234) assim que o Postgres sobe, usando
+  # o mesmo scripts/create-staff-user.mjs documentado em AUTH_GUIDE.md —
+  # sem senha em texto plano em nenhum arquivo de schema versionado.
+  seed-staff-user:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - docesbibi-node-modules:/app/node_modules
+      - docesbibi-pnpm-store:/pnpm-store
+    environment:
+      DATABASE_URL: postgresql://docesbibi:docesbibi@postgres:5432/docesbibi
+      PNPM_HOME: /pnpm-store
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # node_modules e o store do pnpm ficam em volumes nomeados (persistem
+    # entre `docker compose up`/`down`, só somem com `down -v`) — sem isso,
+    # todo `up` reinstalava as ~700 dependências do monorepo do zero só pra
+    # rodar um script que precisa de bcryptjs+pg+dotenv.
+    # --ignore-scripts: nada que create-staff-user.mjs usa (pg, bcryptjs,
+    # dotenv) precisa de build nativo — evita o prompt não-interativo do
+    # pnpm sobre "ignored build scripts" (sharp/msw/unrs-resolver, que são
+    # de outras partes do app, não deste script) travando o install em CI.
+    command: >
+      sh -c "corepack enable &&
+             pnpm config set store-dir /pnpm-store &&
+             pnpm install --frozen-lockfile --ignore-scripts &&
+             node scripts/create-staff-user.mjs test@docesbibi.com.br teste1234 'Conta de Teste'"
+
+  app:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_URL: http://localhost:3000
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+        NEXT_PUBLIC_R2_PUBLIC_URL: ${NEXT_PUBLIC_R2_PUBLIC_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://docesbibi:docesbibi@postgres:5432/docesbibi
+      DATABASE_SSL: "false"
+      AUTH_SECRET: ${AUTH_SECRET:-dev-only-insecure-secret-change-me}
+      NODE_ENV: production
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_R2_PUBLIC_URL: ${NEXT_PUBLIC_R2_PUBLIC_URL:-}
+      MERCADO_PAGO_ACCESS_TOKEN: ${MERCADO_PAGO_ACCESS_TOKEN:-}
+      MERCADO_PAGO_PUBLIC_KEY: ${MERCADO_PAGO_PUBLIC_KEY:-}
+      MERCADO_PAGO_WEBHOOK_SECRET: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Doces Bibi <onboarding@resend.dev>}
+      STORE_OWNER_EMAIL: ${STORE_OWNER_EMAIL:-}
+
+volumes:
+  docesbibi-pgdata:
+  docesbibi-node-modules:
+  docesbibi-pnpm-store:

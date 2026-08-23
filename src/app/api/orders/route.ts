@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     let sql = "SELECT * FROM orders WHERE 1=1";
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (status) {

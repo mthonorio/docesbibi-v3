@@ -109,7 +109,7 @@ export function CustomEasterEgg() {
       flavors: selectedFlavors,
     };
 
-    addToCart(customProduct as any);
+    addToCart(customProduct);
     showToast("Ovo de Páscoa customizado adicionado ao carrinho!");
 
     // Resetar para permite nova customização

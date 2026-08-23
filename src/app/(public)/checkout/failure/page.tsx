@@ -9,33 +9,29 @@ import {
   HelpCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { logger } from "@/lib/mercadopago";
 
 function FailurePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [orderNumber, setOrderNumber] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
+
+  // Lazy initializer: computed once, on first render, not in an effect —
+  // there's no external system to synchronize with here, just a derived
+  // value (with a random fallback that must stay stable across re-renders).
+  const [orderNumber] = useState(
+    () =>
+      searchParams.get("external_reference") ||
+      searchParams.get("payment_id") ||
+      "DOC-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+  );
+  const [email] = useState(() => searchParams.get("email") || "");
 
   useEffect(() => {
-    const paymentId = searchParams.get("payment_id");
-    const status = searchParams.get("status");
-    const externalReference = searchParams.get("external_reference");
-
     logger.warn("FAILURE_PAGE", "Pagamento recusado", {
-      paymentId,
-      status,
-      externalReference,
+      paymentId: searchParams.get("payment_id"),
+      status: searchParams.get("status"),
+      externalReference: searchParams.get("external_reference"),
     });
-
-    const number =
-      externalReference ||
-      paymentId ||
-      "DOC-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-    const customerEmail = searchParams.get("email") || "";
-    setOrderNumber(number);
-    setEmail(customerEmail);
   }, [searchParams]);
 
   return (

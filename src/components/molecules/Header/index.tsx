@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Menu, X, ShoppingBag } from "lucide-react";
 
 interface HeaderProps {
@@ -36,36 +37,36 @@ export function Header({
 
           {/* Desktop Menu */}
           <div className="hidden md:flex space-x-8 items-center">
-            <a
+            <Link
               href="/#home"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
             >
               Início
-            </a>
-            <a
+            </Link>
+            <Link
               href="/easter"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
             >
               Páscoa
-            </a>
-            <a
+            </Link>
+            <Link
               href="/products"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
             >
               Produtos
-            </a>
-            <a
+            </Link>
+            <Link
               href="/pedidos"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
             >
               Meus Pedidos
-            </a>
-            <a
+            </Link>
+            <Link
               href="/#sobre"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
             >
               Nossa História
-            </a>
+            </Link>
             <a
               href="#contato"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
@@ -113,41 +114,41 @@ export function Header({
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-rosa-100">
           <div className="px-4 pt-2 pb-6 space-y-2">
-            <a
+            <Link
               href="/#home"
               className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"
               onClick={onMobileMenuClose}
             >
               Início
-            </a>
-            <a
+            </Link>
+            <Link
               href="/easter"
               className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"
               onClick={onMobileMenuClose}
             >
               Páscoa
-            </a>
-            <a
+            </Link>
+            <Link
               href="/products"
               className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"
               onClick={onMobileMenuClose}
             >
               Produtos
-            </a>
-            <a
+            </Link>
+            <Link
               href="/pedidos"
               className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"
               onClick={onMobileMenuClose}
             >
               Meus Pedidos
-            </a>
-            <a
+            </Link>
+            <Link
               href="/#sobre"
               className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"
               onClick={onMobileMenuClose}
             >
               Nossa História
-            </a>
+            </Link>
             <a
               href="#contato"
               className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"

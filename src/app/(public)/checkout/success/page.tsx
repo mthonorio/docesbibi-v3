@@ -9,15 +9,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { logger } from "@/lib/mercadopago";
-
-interface PaymentInfo {
-  paymentId: string;
-  merchantOrderId: string;
-  email: string;
-  status: string;
-}
 
 // O status na URL vem do redirect do MP e pode ser forjado por qualquer um
 // só editando a query string — não é prova de pagamento. A prova real é
@@ -26,20 +19,23 @@ interface PaymentInfo {
 type VerifiedStatus = "checking" | "approved" | "pending" | "other" | "unknown";
 
 function SuccessPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [orderNumber, setOrderNumber] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [verifiedStatus, setVerifiedStatus] = useState<VerifiedStatus>("checking");
+  // Lazy initializers: computed once on first render (derived from the
+  // URL, not from an external system), not in an effect.
+  const [orderNumber] = useState(
+    () => searchParams.get("external_reference") || searchParams.get("payment_id") || "",
+  );
+  const [email] = useState(() => searchParams.get("email") || "");
+  // "unknown" já nasce correto quando não há payment_id (acesso direto à
+  // URL) — computado uma vez, na inicialização, não dentro do efeito.
+  const [verifiedStatus, setVerifiedStatus] = useState<VerifiedStatus>(() =>
+    searchParams.get("payment_id") ? "checking" : "unknown",
+  );
 
   useEffect(() => {
     const paymentId = searchParams.get("payment_id");
     const merchantOrderId = searchParams.get("merchant_order_id");
     const externalReference = searchParams.get("external_reference");
-    const customerEmail = searchParams.get("email") || "";
-    setEmail(customerEmail);
 
     logger.info("SUCCESS_PAGE", "Parâmetros recebidos", {
       paymentId,
@@ -49,24 +45,18 @@ function SuccessPageContent() {
 
     if (!paymentId) {
       // Ninguém veio do redirect do MP (ex.: acesso direto à URL) — não há
-      // o que verificar, e não afirmamos que uma compra foi confirmada.
-      setVerifiedStatus("unknown");
-      setIsLoading(false);
+      // o que verificar; verifiedStatus já nasceu "unknown" acima.
       return;
     }
 
-    setOrderNumber(externalReference || paymentId);
-
+    // Consulta assíncrona a um sistema externo (nosso backend, que por sua
+    // vez consulta o MP) — este é exatamente o uso pretendido de um efeito;
+    // o setState acontece dentro do callback da promise, não no corpo
+    // síncrono do efeito.
     fetch(`/api/payments/${encodeURIComponent(paymentId)}`)
       .then((res) => res.json())
       .then((data) => {
         const realStatus: string | undefined = data?.payment?.status;
-        setPaymentInfo({
-          paymentId,
-          merchantOrderId: merchantOrderId || "",
-          email: customerEmail,
-          status: realStatus || "unknown",
-        });
         setVerifiedStatus(
           realStatus === "approved"
             ? "approved"
@@ -80,8 +70,7 @@ function SuccessPageContent() {
           error: err instanceof Error ? err.message : String(err),
         });
         setVerifiedStatus("other");
-      })
-      .finally(() => setIsLoading(false));
+      });
   }, [searchParams]);
 
   const estimatedDate = new Date();

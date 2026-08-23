@@ -1,4 +1,9 @@
-import type { Order, CreateOrderInput, UpdateOrderInput } from "@/types/api";
+import type {
+  Order,
+  CreateOrderInput,
+  UpdateOrderInput,
+  OrderStatus,
+} from "@/types/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -98,8 +103,8 @@ export const orderApi = {
   },
 
   // Helper - Trocar status do pedido
-  async updateStatus(id: string, status: string): Promise<Order> {
-    return this.update(id, { status: status as any });
+  async updateStatus(id: string, status: OrderStatus): Promise<Order> {
+    return this.update(id, { status });
   },
 
   // Helper - Buscar pedidos por email
@@ -108,7 +113,7 @@ export const orderApi = {
   },
 
   // Helper - Buscar pedidos por status
-  async getByStatus(status: string): Promise<Order[]> {
+  async getByStatus(status: OrderStatus): Promise<Order[]> {
     return this.getAll({ status });
   },
 };

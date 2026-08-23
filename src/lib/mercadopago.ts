@@ -20,21 +20,21 @@ export interface PaymentStatus {
 
 // ========== LOGGING COM TIMESTAMP ==========
 export const logger = {
-  info: (label: string, message: string, data?: any) => {
+  info: (label: string, message: string, data?: unknown) => {
     console.log(
       `[${new Date().toISOString()}] [INFO] [${label}] ${message}`,
       data || "",
     );
   },
 
-  error: (label: string, message: string, data?: any) => {
+  error: (label: string, message: string, data?: unknown) => {
     console.error(
       `[${new Date().toISOString()}] [ERROR] [${label}] ${message}`,
       data || "",
     );
   },
 
-  warn: (label: string, message: string, data?: any) => {
+  warn: (label: string, message: string, data?: unknown) => {
     console.warn(
       `[${new Date().toISOString()}] [WARN] [${label}] ${message}`,
       data || "",
@@ -62,9 +62,9 @@ export async function getPaymentStatus(
 
     const paymentStatus: PaymentStatus = {
       id: response.id?.toString() || paymentId,
-      status: (response.status as any) || "pending",
+      status: (response.status as PaymentStatus["status"]) || "pending",
       external_reference: response.external_reference || undefined,
-      payer_email: (response.payer as any)?.email,
+      payer_email: (response.payer as { email?: string } | undefined)?.email,
       transaction_amount: response.transaction_amount || 0,
       currency_id: response.currency_id || "BRL",
       created_at: response.date_created || new Date().toISOString(),

@@ -13,13 +13,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
+docker compose up -d  # local Postgres + test staff user, see src/docs/LOCAL_TESTING.md
 pnpm dev      # start dev server (Turbopack), http://localhost:3000
 pnpm build    # production build
 pnpm start    # run production build
 pnpm lint     # eslint (flat config: eslint.config.mjs)
 ```
 
-Package manager is **pnpm** (`pnpm-lock.yaml`, `pnpm-workspace.yaml` present) — don't use npm/yarn commands.
+Package manager is **pnpm** (`pnpm-lock.yaml`, `pnpm-workspace.yaml` present) — don't use npm/yarn commands. `docker-compose.yml` is dev/test-only (local Postgres with the real schema applied, plus a seeded staff login) — not what production uses; Railway builds `Dockerfile` directly.
 
 There is no test runner configured in this repo. `test-api.sh` is a manual curl script for exercising the API routes, not an automated test suite.
 
@@ -49,9 +50,15 @@ There is no Supabase anywhere in this project anymore (banco, Auth, and Storage 
 
 `OrderStatus` (see [src/types/api.ts](src/types/api.ts)) is the 8-state production flow: `novo_pedido → aguardando_pagamento → pago → em_producao → pronto_retirada → saiu_entrega → finalizado`, plus `cancelado`. This replaced an earlier 5-value enum — `sql/002_payment_flow.sql` has the migration and the old→new value mapping.
 
-### Auth & access control
+### Admin panel (`/admin`)
 
-`/orders` (today's only order-management surface — a future `/admin` panel would extend this) requires a logged-in session, via NextAuth v5 (Auth.js) — [src/lib/auth.ts](src/lib/auth.ts) defines a `Credentials` provider that checks the `users` table (`sql/004_auth_users.sql`) with `bcryptjs`, JWT session strategy (no session table). [src/proxy.ts](src/proxy.ts) wraps its exported `proxy` function in `auth(...)`, which decodes the session cookie (Edge-safe, no DB hit) and populates `request.auth`; unauthenticated requests to a protected path redirect to `/admin/login`. There is no signup flow — staff accounts are created with `node scripts/create-staff-user.mjs <email> <password>` (see [src/docs/AUTH_GUIDE.md](src/docs/AUTH_GUIDE.md)), which hashes the password and upserts into `users` directly via `DATABASE_URL`.
+The staff surface — previously a single page at `/orders` — is now a real panel under `src/app/admin/(dashboard)/` (`dashboard`, `vendas`, `vendas/[id]`, `produtos`), sharing `AdminSidebar` via `src/app/admin/(dashboard)/layout.tsx`. It intentionally does **not** get the storefront chrome: `LayoutClient` (Header/CartSheet/Footer/BottomNav) is mounted in [src/app/(public)/layout.tsx](<src/app/(public)/layout.tsx>), not the root layout, so admin routes render under their own shell. `admin/login` sits outside the `(dashboard)` group (no sidebar — it's the page an unauthenticated request lands on).
+
+Requires a logged-in session via NextAuth v5 (Auth.js) — [src/lib/auth.ts](src/lib/auth.ts) defines a `Credentials` provider that checks the `users` table (`sql/004_auth_users.sql`) with `bcryptjs`, JWT session strategy (no session table). [src/proxy.ts](src/proxy.ts) wraps its exported `proxy` function in `auth(...)`, which decodes the session cookie (Edge-safe, no DB hit) and populates `request.auth`; `PROTECTED_PATHS` lists the `(dashboard)` routes explicitly (`/admin/dashboard`, `/admin/vendas`, `/admin/produtos`) — deliberately *not* `/admin/login`, which would create a redirect loop. There is no signup flow — staff accounts are created with `node scripts/create-staff-user.mjs <email> <password>` (see [src/docs/AUTH_GUIDE.md](src/docs/AUTH_GUIDE.md)), which hashes the password and upserts into `users` directly via `DATABASE_URL`.
+
+The Dashboard's KPIs (revenue, order count, average ticket, 7-day chart) are computed client-side from `GET /api/orders` — no aggregation endpoint exists; see the comment in `src/app/admin/(dashboard)/dashboard/page.tsx` for when that stops being good enough.
+
+Customers get their own order lookup at `/pedidos` (by email, against the same `GET /api/orders?email=` filter the admin panel uses) and `/pedidos/[id]` — not authenticated, since there's no customer account system; anyone who knows an email can look up its orders. `OrderStatusTimeline` ([src/components/molecules/OrderStatusTimeline](src/components/molecules/OrderStatusTimeline/index.tsx)) renders the real 7-step flow and is shared between this page and the admin order detail page.
 
 ### CORS
 
@@ -59,7 +66,7 @@ There is no Supabase anywhere in this project anymore (banco, Auth, and Storage 
 
 ### Component structure (atomic design)
 
-`src/components/` is organized as `atoms/` (shadcn primitives, radix-based — see [components.json](components.json), style `radix-vega`), `molecules/` (composed, e.g. `CartSheet`, `ProductCard`, `ProductsGrid`), `organisms/` (larger composed features, e.g. `CustomEasterEgg`), `sections/` (page-level sections, e.g. `OrdersManager`), and `forms/`. State and callbacks are passed down from page components (props drilling), not context. See [src/components/README.md](src/components/README.md) for the existing (partial) documentation of this pattern — it predates some newer components so isn't exhaustive.
+`src/components/` is organized as `atoms/` (shadcn primitives, radix-based — see [components.json](components.json), style `radix-vega` — plus small standalone atoms like `StatusBadge`), `molecules/` (composed, e.g. `CartSheet`, `ProductCard`, `ProductsGrid`, `BottomNav`, `OrderStatusTimeline`), `organisms/` (larger composed features, e.g. `CustomEasterEgg`, `AdminSidebar`), and `forms/` (e.g. `CreateOrderForm`, used both from the old flow and now as a dialog on `/admin/vendas` for manual orders). State and callbacks are passed down from page components (props drilling), not context. See [src/components/README.md](src/components/README.md) for the existing (partial) documentation of this pattern — it predates some newer components so isn't exhaustive.
 
 Path alias `@/*` → `src/*` (see [tsconfig.json](tsconfig.json)).
 
@@ -76,6 +83,7 @@ Path alias `@/*` → `src/*` (see [tsconfig.json](tsconfig.json)).
 - [MERCADO_PAGO_GUIDE.md](src/docs/MERCADO_PAGO_GUIDE.md) — payment integration
 - [ORDERS_IMPLEMENTATION.md](src/docs/ORDERS_IMPLEMENTATION.md) — order lifecycle
 - [DEPLOY_GUIDE.md](src/docs/DEPLOY_GUIDE.md) — Railway deploy troubleshooting
+- [LOCAL_TESTING.md](src/docs/LOCAL_TESTING.md) — `docker-compose.yml` for a local Postgres + seeded staff login, dev/test only
 - [RAILWAY_DEPLOY.md](src/docs/RAILWAY_DEPLOY.md) — full deploy spec: Postgres provisioning, image migration to R2, env vars, checklist
 - [SUPABASE_GUIDE.md](src/docs/SUPABASE_GUIDE.md), [MIGRATION_STATUS.md](src/docs/MIGRATION_STATUS.md), [FIX_CORS_PRODUCTION.md](src/docs/FIX_CORS_PRODUCTION.md) — historical only, flagged deprecated at the top of each; the Supabase/Vercel setup they describe no longer exists
 

@@ -30,14 +30,38 @@ const CreatePreferenceSchema = z.object({
   notes: z.string().optional(),
 });
 
-type CreatePreferenceInput = z.infer<typeof CreatePreferenceSchema>;
-
 // ========== INTERFACE PARA PRODUTO ==========
 interface ProductFromDB {
   id: string;
   name: string;
   price: number;
   description?: string;
+}
+
+// ========== TIPOS DA PREFERÊNCIA MERCADO PAGO ==========
+// Só os campos que este route handler efetivamente monta — não é o shape
+// completo aceito pela API do MP, só o suficiente pra tipar sem `any`.
+interface PreferenceItemData {
+  id: string;
+  title: string;
+  quantity: number;
+  unit_price: number;
+  currency_id: string;
+  description?: string;
+}
+
+interface CreatePreferenceData {
+  items: PreferenceItemData[];
+  payer: {
+    email: string;
+    name?: string;
+    phone?: { area_code?: string; number?: string };
+  };
+  external_reference: string;
+  back_urls: { success: string; failure: string; pending: string };
+  notification_url: string;
+  statement_descriptor: string;
+  auto_return?: "approved";
 }
 
 // ========== INICIALIZAÇÃO MERCADO PAGO ==========
@@ -207,7 +231,7 @@ export async function POST(req: Request) {
     const preference = new Preference(client);
 
     // ========== MONTAR ITEMS COM PREÇOS DO BANCO DE DADOS ==========
-    const preferenceItems = validData.items.map((item, index) => {
+    const preferenceItems = validData.items.map((item) => {
       const product = productsFromDB.get(item.product_id)!;
       return {
         id: String(item.product_id),
@@ -220,7 +244,7 @@ export async function POST(req: Request) {
     });
 
     // Montar o objeto de preferência
-    const preferenceData: any = {
+    const preferenceData: CreatePreferenceData = {
       items: preferenceItems,
       payer: {
         email: validData.payer.email,
@@ -248,7 +272,7 @@ export async function POST(req: Request) {
     console.log("[MP Payment] Enviando preferência para o Mercado Pago", {
       itemsCount: preferenceData.items.length,
       totalAmount: preferenceData.items.reduce(
-        (sum: number, item: any) => sum + item.unit_price * item.quantity,
+        (sum, item) => sum + item.unit_price * item.quantity,
         0,
       ),
     });

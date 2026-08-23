@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category");
 
     let sql = "SELECT * FROM products ORDER BY created_at DESC";
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (category && category !== "all") {
       sql =

@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { CartSheet } from "@/components/molecules/CartSheet";
 import Footer from "@/components/molecules/Footer";
 import { Header } from "@/components/molecules/Header";
 import { BottomNav } from "@/components/molecules/BottomNav";
 import { useCartStore } from "@/store/cart.store";
 import { useUIStore } from "@/store/ui.store";
+import { useIsClient } from "@/hooks/useIsClient";
 
 interface LayoutClientProps {
   children: React.ReactNode;
 }
 
 export function LayoutClient({ children }: LayoutClientProps) {
-  const [isHydrated, setIsHydrated] = useState(false);
+  const isHydrated = useIsClient();
 
   const {
     items: cartItems,
@@ -32,11 +33,6 @@ export function LayoutClient({ children }: LayoutClientProps) {
     setScrollShadow,
     toggleMobileMenu,
   } = useUIStore();
-
-  // Set hydrated flag after mount to prevent hydration mismatch
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
 
   // Handle scroll shadow
   useEffect(() => {

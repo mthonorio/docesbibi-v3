@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest, { params }: ParamsProps) {
 
     // Construir a query dinamicamente baseada nos campos fornecidos
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (body.name !== undefined) {

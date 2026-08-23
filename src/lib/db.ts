@@ -47,7 +47,7 @@ pool.on("connect", () => {
   console.log("✅ New client connected to database");
 });
 
-export async function query(text: string, params?: any[]) {
+export async function query(text: string, params?: unknown[]) {
   const start = Date.now();
   try {
     const result = await pool.query(text, params);

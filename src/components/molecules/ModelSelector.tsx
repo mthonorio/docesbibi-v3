@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { EasterModel, EasterModelType } from "@/types/api";
 
 interface ModelSelectorProps {
