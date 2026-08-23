@@ -1,21 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { requireStaff } from "@/lib/auth-guards";
 import { Product, CreateProductInput, ApiResponse } from "@/types/api";
 
-// GET /api/products - listar todos os produtos
+// GET /api/products - listar produtos. Público por natureza (catálogo da
+// loja), mas só mostra `active = true` por padrão — `includeInactive=true`
+// é usado pela tela de gestão (não é dado sensível, só visibilidade).
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
+    const includeInactive = searchParams.get("includeInactive") === "true";
 
-    let sql = "SELECT * FROM products ORDER BY created_at DESC";
+    const conditions: string[] = [];
     const params: unknown[] = [];
 
     if (category && category !== "all") {
-      sql =
-        "SELECT * FROM products WHERE category = $1 ORDER BY created_at DESC";
       params.push(category);
+      conditions.push(`category = $${params.length}`);
     }
+
+    if (!includeInactive) {
+      conditions.push("active = true");
+    }
+
+    const sql =
+      `SELECT * FROM products` +
+      (conditions.length ? ` WHERE ${conditions.join(" AND ")}` : "") +
+      ` ORDER BY created_at DESC`;
 
     const result = await query(sql, params);
 
@@ -35,8 +47,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/products - criar novo produto
+// POST /api/products - criar novo produto (só gestora)
 export async function POST(request: NextRequest) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
   try {
     const body: CreateProductInput = await request.json();
 
@@ -56,8 +71,8 @@ export async function POST(request: NextRequest) {
     }
 
     const sql = `
-      INSERT INTO products (name, category, price, image, description, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      INSERT INTO products (name, category, price, image, description, active, stock, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       RETURNING *
     `;
 
@@ -67,6 +82,8 @@ export async function POST(request: NextRequest) {
       body.price,
       body.image,
       body.description,
+      body.active ?? true,
+      body.stock ?? null,
     ]);
 
     const response: ApiResponse<Product> = {

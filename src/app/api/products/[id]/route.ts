@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { isValidUUID } from "@/lib/validation";
+import { requireStaff } from "@/lib/auth-guards";
 import { Product, UpdateProductInput, ApiResponse } from "@/types/api";
 
 interface ParamsProps {
@@ -48,8 +49,11 @@ export async function GET(request: NextRequest, { params }: ParamsProps) {
   }
 }
 
-// PATCH /api/products/[id] - atualizar produto
+// PATCH /api/products/[id] - atualizar produto (só gestora)
 export async function PATCH(request: NextRequest, { params }: ParamsProps) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
   try {
     const { id } = await params;
     const body: UpdateProductInput = await request.json();
@@ -90,6 +94,16 @@ export async function PATCH(request: NextRequest, { params }: ParamsProps) {
     if (body.description !== undefined) {
       fields.push(`description = $${paramIndex}`);
       values.push(body.description);
+      paramIndex++;
+    }
+    if (body.active !== undefined) {
+      fields.push(`active = $${paramIndex}`);
+      values.push(body.active);
+      paramIndex++;
+    }
+    if (body.stock !== undefined) {
+      fields.push(`stock = $${paramIndex}`);
+      values.push(body.stock);
       paramIndex++;
     }
 
@@ -139,8 +153,11 @@ export async function PATCH(request: NextRequest, { params }: ParamsProps) {
   }
 }
 
-// DELETE /api/products/[id] - deletar produto
+// DELETE /api/products/[id] - deletar produto (só gestora)
 export async function DELETE(request: NextRequest, { params }: ParamsProps) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
   try {
     const { id } = await params;
 

@@ -5,7 +5,11 @@ import { addCorsHeaders, corsOptionsResponse } from "@/lib/cors";
 // Rotas que só a gestora (staff) pode ver. Note que "/admin/login" NÃO
 // entra aqui de propósito — protegê-la criaria um loop de redirect
 // (deslogado → /admin/login → "protegido, redireciona pra /admin/login"…).
-const PROTECTED_PATHS = ["/admin/dashboard", "/admin/vendas", "/admin/produtos"];
+const STAFF_PATHS = ["/admin/dashboard", "/admin/vendas", "/admin/produtos"];
+
+// Rotas que só o comprador logado pode ver (mesma lógica: "/entrar" e
+// "/cadastro" ficam de fora pra não criar loop de redirect).
+const CUSTOMER_PATHS = ["/pedidos"];
 
 // `auth()` do NextAuth envolve o handler e injeta `request.auth` (sessão
 // decodificada do cookie JWT — não bate no banco aqui, só verifica a
@@ -21,18 +25,27 @@ export const proxy = auth((request) => {
     return addCorsHeaders(NextResponse.next(), origin);
   }
 
-  const isProtected = PROTECTED_PATHS.some(
-    (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`),
-  );
+  const matchesPath = (paths: string[]) =>
+    paths.some(
+      (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`),
+    );
 
-  if (!isProtected) {
+  if (matchesPath(STAFF_PATHS)) {
+    if (!request.auth || request.auth.user.role !== "staff") {
+      const loginUrl = new URL("/admin/login", request.url);
+      loginUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
     return NextResponse.next();
   }
 
-  if (!request.auth) {
-    const loginUrl = new URL("/admin/login", request.url);
-    loginUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
+  if (matchesPath(CUSTOMER_PATHS)) {
+    if (!request.auth || request.auth.user.role !== "customer") {
+      const loginUrl = new URL("/entrar", request.url);
+      loginUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();

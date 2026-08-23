@@ -21,6 +21,8 @@ const EMPTY_FORM: CreateProductInput = {
   price: 0,
   image: "",
   description: "",
+  active: true,
+  stock: null,
 };
 
 export default function ProdutosGestaoPage() {
@@ -37,7 +39,7 @@ export default function ProdutosGestaoPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const data = await productApi.getAll();
+      const data = await productApi.getAll(undefined, { includeInactive: true });
       setProducts(data);
       setError(null);
     } catch (err) {
@@ -70,6 +72,8 @@ export default function ProdutosGestaoPage() {
       price: product.price,
       image: product.image,
       description: product.description,
+      active: product.active,
+      stock: product.stock,
     });
     setDialogOpen(true);
   };
@@ -154,14 +158,26 @@ export default function ProdutosGestaoPage() {
           {filtered.map((product) => (
             <div
               key={product.id}
-              className="overflow-hidden rounded-[18px] bg-white shadow-[0_8px_22px_-16px_rgba(62,39,35,0.15)]"
+              className={`overflow-hidden rounded-[18px] bg-white shadow-[0_8px_22px_-16px_rgba(62,39,35,0.15)] ${
+                !product.active ? "opacity-55" : ""
+              }`}
             >
-              <div className="aspect-[4/3] bg-rosa-50">
+              <div className="relative aspect-[4/3] bg-rosa-50">
                 <img
                   src={product.image}
                   alt={product.name}
                   className="h-full w-full object-cover"
                 />
+                {!product.active && (
+                  <span className="absolute left-2 top-2 rounded-full bg-marrom-900/85 px-2.5 py-1 text-[10px] font-bold text-white">
+                    Inativo
+                  </span>
+                )}
+                {product.active && product.stock === 0 && (
+                  <span className="absolute left-2 top-2 rounded-full bg-red-700/90 px-2.5 py-1 text-[10px] font-bold text-white">
+                    Esgotado
+                  </span>
+                )}
               </div>
               <div className="p-4">
                 <h3 className="mb-1.5 text-sm font-bold text-marrom-900">
@@ -169,6 +185,7 @@ export default function ProdutosGestaoPage() {
                 </h3>
                 <span className="mb-2.5 block text-[11px] text-marrom-500">
                   {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+                  {product.stock !== null ? ` · ${product.stock} em estoque` : ""}
                 </span>
                 <div className="flex items-center justify-between">
                   <span className="text-[15px] font-bold text-vermelho-700">
@@ -254,6 +271,31 @@ export default function ProdutosGestaoPage() {
                 className="w-full rounded-xl border border-rosa-100 px-3.5 py-2.5 text-sm focus:border-rosa-800 focus:outline-none"
               />
             </Field>
+            <div className="flex items-center gap-4">
+              <Field label="Estoque (vazio = ilimitado)">
+                <input
+                  type="number"
+                  min="0"
+                  value={form.stock ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      stock: e.target.value === "" ? null : parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full rounded-xl border border-rosa-100 px-3.5 py-2.5 text-sm focus:border-rosa-800 focus:outline-none"
+                />
+              </Field>
+              <label className="flex items-center gap-2 pt-5 text-sm font-bold text-marrom-900">
+                <input
+                  type="checkbox"
+                  checked={form.active ?? true}
+                  onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  className="h-4 w-4 accent-rosa-800"
+                />
+                Ativo
+              </label>
+            </div>
           </div>
 
           <DialogFooter>

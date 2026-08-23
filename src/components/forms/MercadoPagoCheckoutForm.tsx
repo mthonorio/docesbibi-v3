@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, User, Phone, MapPin, MessageSquare } from "lucide-react";
+import { Mail, User, Phone, MapPin, MessageSquare, Truck, CalendarClock } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { MercadoPagoButton } from "@/components/atoms/MercadoPagoButton";
 import { useCartStore } from "@/store/cart.store";
+import type { DeliveryType } from "@/types/api";
 
 type CheckoutFormData = {
   name: string;
@@ -11,6 +13,9 @@ type CheckoutFormData = {
   phone: string;
   address: string;
   notes: string;
+  deliveryType: DeliveryType | "";
+  deliveryDate: string;
+  deliveryTime: string;
 };
 
 function SectionLabel({ step, title }: { step: number; title: string }) {
@@ -34,13 +39,29 @@ const fieldClass =
  * - Integra botão de pagamento MP
  */
 export function MercadoPagoCheckoutForm() {
+  const { data: session } = useSession();
+  const isLoggedInCustomer = session?.user.role === "customer";
+
   const [formData, setFormData] = useState<CheckoutFormData>({
     name: "",
     email: "",
     phone: "",
     address: "",
     notes: "",
+    deliveryType: "",
+    deliveryDate: "",
+    deliveryTime: "",
   });
+
+  // Pré-preenche com os dados da conta logada, calculado no render (não em
+  // efeito) pra evitar um segundo render em cascata. E-mail fica travado
+  // (input disabled abaixo) pra não quebrar o vínculo do pedido com o
+  // customer_id — por isso usa o e-mail da sessão direto, sem passar por
+  // formData.
+  const effectiveEmail =
+    isLoggedInCustomer && session?.user.email ? session.user.email : formData.email;
+  const effectiveName =
+    formData.name || (isLoggedInCustomer ? session?.user.name || "" : "");
 
   const [isLoading, setIsLoading] = useState(false);
   const { items: cartItems } = useCartStore();
@@ -81,7 +102,7 @@ export function MercadoPagoCheckoutForm() {
                 <input
                   type="text"
                   name="name"
-                  value={formData.name}
+                  value={effectiveName}
                   onChange={handleInputChange}
                   placeholder="João Silva"
                   className={fieldClass}
@@ -97,14 +118,16 @@ export function MercadoPagoCheckoutForm() {
                 <input
                   type="email"
                   name="email"
-                  value={formData.email}
+                  value={effectiveEmail}
                   onChange={handleInputChange}
                   placeholder="seu@email.com"
                   className={fieldClass}
-                  disabled={isLoading}
+                  disabled={isLoading || isLoggedInCustomer}
                 />
                 <p className="text-xs text-marrom-500 mt-1">
-                  Usaremos para enviar a confirmação do pedido
+                  {isLoggedInCustomer
+                    ? "E-mail da sua conta — o pedido fica salvo em Meus Pedidos"
+                    : "Usaremos para enviar a confirmação do pedido"}
                 </p>
               </div>
 
@@ -161,6 +184,70 @@ export function MercadoPagoCheckoutForm() {
               disabled={isLoading}
             />
           </div>
+
+          {/* 4. Entrega (opcional — sem agendamento, o pedido simplesmente
+              não entra na aba "Agendadas" da gestora) */}
+          <div>
+            <SectionLabel step={4} title="Entrega (opcional)" />
+            <div className="flex gap-2 mb-3">
+              {(["retirada", "entrega"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      deliveryType: prev.deliveryType === type ? "" : type,
+                    }))
+                  }
+                  disabled={isLoading}
+                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-bold capitalize ${
+                    formData.deliveryType === type
+                      ? "border-rosa-800 bg-rosa-50 text-rosa-800"
+                      : "border-rosa-100 text-marrom-700"
+                  }`}
+                >
+                  {type === "retirada" ? (
+                    <CalendarClock className="w-3.5 h-3.5" />
+                  ) : (
+                    <Truck className="w-3.5 h-3.5" />
+                  )}
+                  {type}
+                </button>
+              ))}
+            </div>
+
+            {formData.deliveryType && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-marrom-900 mb-1.5">
+                    Data
+                  </label>
+                  <input
+                    type="date"
+                    name="deliveryDate"
+                    value={formData.deliveryDate}
+                    onChange={handleInputChange}
+                    className={fieldClass}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-marrom-900 mb-1.5">
+                    Horário
+                  </label>
+                  <input
+                    type="time"
+                    name="deliveryTime"
+                    value={formData.deliveryTime}
+                    onChange={handleInputChange}
+                    className={fieldClass}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Resumo do Carrinho */}
@@ -205,10 +292,13 @@ export function MercadoPagoCheckoutForm() {
 
             {/* Botão Mercado Pago */}
             <MercadoPagoButton
-              email={formData.email}
-              customerName={formData.name}
+              email={effectiveEmail}
+              customerName={effectiveName}
               customerAddress={formData.address}
               notes={formData.notes}
+              deliveryType={formData.deliveryType || undefined}
+              deliveryDate={formData.deliveryDate || undefined}
+              deliveryTime={formData.deliveryTime || undefined}
               onLoading={setIsLoading}
               className="mt-6"
             />

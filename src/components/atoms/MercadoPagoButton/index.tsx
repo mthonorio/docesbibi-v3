@@ -4,12 +4,16 @@ import { useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
 import { logger } from "@/lib/mercadopago";
+import type { DeliveryType } from "@/types/api";
 
 interface MercadoPagoButtonProps {
   email?: string;
   customerName?: string;
   customerAddress?: string;
   notes?: string;
+  deliveryType?: DeliveryType;
+  deliveryDate?: string;
+  deliveryTime?: string;
   onError?: (error: string) => void;
   onLoading?: (isLoading: boolean) => void;
   className?: string;
@@ -26,6 +30,9 @@ export function MercadoPagoButton({
   customerName = "",
   customerAddress = "",
   notes = "",
+  deliveryType,
+  deliveryDate,
+  deliveryTime,
   onError,
   onLoading,
   className = "",
@@ -83,6 +90,9 @@ export function MercadoPagoButton({
         },
         customer_address: customerAddress || undefined,
         notes: notes || undefined,
+        delivery_type: deliveryType,
+        delivery_date: deliveryDate,
+        delivery_time: deliveryTime,
       };
 
       logger.info(

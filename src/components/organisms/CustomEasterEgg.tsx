@@ -105,6 +105,8 @@ export function CustomEasterEgg() {
       price: selectedProduct.price,
       image: selectedProduct.image,
       description: `${selectedProduct.description} | Sabores: ${selectedFlavors.join(", ")}`,
+      active: true,
+      stock: null,
       customized: true,
       flavors: selectedFlavors,
     };

@@ -95,9 +95,24 @@ export default function VendaDetailPage() {
           </Section>
 
           {/* Entrega */}
-          {order.customer_address && (
+          {(order.customer_address || order.delivery_type) && (
             <Section title="Entrega">
-              <Row label="Endereço" value={order.customer_address} />
+              {order.customer_address && (
+                <Row label="Endereço" value={order.customer_address} />
+              )}
+              {order.delivery_type && (
+                <Row
+                  label="Tipo"
+                  value={order.delivery_type === "entrega" ? "Entrega" : "Retirada"}
+                />
+              )}
+              {order.delivery_date && (
+                <Row
+                  label="Data"
+                  value={new Date(`${order.delivery_date}T00:00`).toLocaleDateString("pt-BR")}
+                />
+              )}
+              {order.delivery_time && <Row label="Horário" value={order.delivery_time} />}
             </Section>
           )}
         </div>

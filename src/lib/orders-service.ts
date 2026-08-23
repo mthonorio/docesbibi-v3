@@ -20,8 +20,11 @@ export async function createOrder(
   const status = options.status ?? "novo_pedido";
 
   const orderResult = await query(
-    `INSERT INTO orders (customer_name, customer_email, customer_phone, customer_address, notes, status)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO orders (
+       customer_name, customer_email, customer_phone, customer_address, notes, status,
+       customer_id, delivery_type, delivery_date, delivery_time
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING id`,
     [
       input.customer_name,
@@ -30,6 +33,10 @@ export async function createOrder(
       input.customer_address || null,
       input.notes || null,
       status,
+      input.customer_id || null,
+      input.delivery_type || null,
+      input.delivery_date || null,
+      input.delivery_time || null,
     ],
   );
 

@@ -5,6 +5,8 @@ export interface Product {
   price: number;
   image: string;
   description: string;
+  active: boolean;
+  stock: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -15,6 +17,8 @@ export interface CreateProductInput {
   price: number;
   image: string;
   description: string;
+  active?: boolean;
+  stock?: number | null;
 }
 
 export interface UpdateProductInput {
@@ -23,6 +27,8 @@ export interface UpdateProductInput {
   price?: number;
   image?: string;
   description?: string;
+  active?: boolean;
+  stock?: number | null;
 }
 
 // ========== ORDERS ==========
@@ -47,8 +53,11 @@ export interface OrderItem {
   created_at?: string;
 }
 
+export type DeliveryType = "retirada" | "entrega";
+
 export interface Order {
   id: string;
+  customer_id?: string | null;
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
@@ -58,17 +67,24 @@ export interface Order {
   notes?: string;
   payment_id?: string;
   external_reference?: string;
+  delivery_type?: DeliveryType | null;
+  delivery_date?: string | null;
+  delivery_time?: string | null;
   items?: OrderItem[];
   created_at?: string;
   updated_at?: string;
 }
 
 export interface CreateOrderInput {
+  customer_id?: string;
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
   customer_address?: string;
   notes?: string;
+  delivery_type?: DeliveryType;
+  delivery_date?: string;
+  delivery_time?: string;
   items: Array<{
     product_id: string;
     quantity: number;
@@ -82,6 +98,9 @@ export interface UpdateOrderInput {
   customer_phone?: string;
   customer_address?: string;
   notes?: string;
+  delivery_type?: DeliveryType;
+  delivery_date?: string;
+  delivery_time?: string;
 }
 
 export interface ApiResponse<T> {

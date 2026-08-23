@@ -29,10 +29,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export const productApi = {
   // GET - Listar todos os produtos
-  async getAll(category?: string): Promise<Product[]> {
+  async getAll(
+    category?: string,
+    options?: { includeInactive?: boolean },
+  ): Promise<Product[]> {
     const url = new URL(`${API_BASE_URL}/api/products`);
     if (category && category !== "all") {
       url.searchParams.append("category", category);
+    }
+    if (options?.includeInactive) {
+      url.searchParams.append("includeInactive", "true");
     }
 
     const response = await fetch(url.toString(), {

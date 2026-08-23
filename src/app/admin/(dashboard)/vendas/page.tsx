@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, CalendarClock, Plus } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { useOrderStore } from "@/store/order.store";
 import { StatusBadge } from "@/components/atoms/StatusBadge";
 import { CreateOrderForm } from "@/components/forms/CreateOrderForm";
@@ -63,7 +63,17 @@ export default function VendasPage() {
         list = orders.filter((o) => o.status === "cancelado");
         break;
       case "agendadas":
-        list = [];
+        list = orders
+          .filter(
+            (o) =>
+              !!o.delivery_date &&
+              (IN_PROGRESS_STATUSES as readonly string[]).includes(o.status),
+          )
+          .sort((a, b) => {
+            const aKey = `${a.delivery_date}T${a.delivery_time || "00:00"}`;
+            const bKey = `${b.delivery_date}T${b.delivery_time || "00:00"}`;
+            return aKey.localeCompare(bKey);
+          });
         break;
     }
 
@@ -82,7 +92,11 @@ export default function VendasPage() {
       andamento: orders.filter((o) =>
         (IN_PROGRESS_STATUSES as readonly string[]).includes(o.status),
       ).length,
-      agendadas: 0,
+      agendadas: orders.filter(
+        (o) =>
+          !!o.delivery_date &&
+          (IN_PROGRESS_STATUSES as readonly string[]).includes(o.status),
+      ).length,
       finalizadas: orders.filter((o) => o.status === "finalizado").length,
       canceladas: orders.filter((o) => o.status === "cancelado").length,
     }),
@@ -151,16 +165,6 @@ export default function VendasPage() {
         <div className="rounded-2xl bg-white p-10 text-center text-marrom-500 shadow-sm">
           Carregando pedidos...
         </div>
-      ) : tab === "agendadas" ? (
-        <div className="flex items-start gap-3 rounded-2xl border-2 border-dashed border-[#e6a94f] bg-[#fef3e2] p-5">
-          <CalendarClock className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[#c2650a]" />
-          <p className="text-[12.5px] leading-relaxed text-[#7c4a08]">
-            <strong>Esta aba depende de um campo que ainda não existe.</strong>{" "}
-            Hoje o pedido não guarda a data/horário de entrega escolhidos pelo
-            cliente — precisa de uma coluna nova em <code>orders</code> antes
-            dessa aba mostrar dado real.
-          </p>
-        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl bg-white p-10 text-center text-marrom-500 shadow-sm">
           Nenhum pedido encontrado{search ? " para essa busca" : " nesta aba"}.
@@ -190,6 +194,13 @@ export default function VendasPage() {
               <span className="flex-1 truncate text-[12.5px] text-marrom-500">
                 {order.items?.map((i) => i.product_name).join(", ") || "—"}
               </span>
+              {tab === "agendadas" && order.delivery_date && (
+                <span className="w-[130px] shrink-0 text-[12px] font-semibold text-[#c2650a]">
+                  {order.delivery_type === "entrega" ? "Entrega" : "Retirada"}{" "}
+                  {new Date(`${order.delivery_date}T00:00`).toLocaleDateString("pt-BR")}
+                  {order.delivery_time ? ` · ${order.delivery_time}` : ""}
+                </span>
+              )}
               <span className="w-[90px] shrink-0 text-[13.5px] font-bold text-marrom-900">
                 {formatCurrency(order.total_price)}
               </span>

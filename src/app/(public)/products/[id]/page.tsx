@@ -46,8 +46,10 @@ export default function ProductDetailPage() {
     };
   }, [params.id]);
 
+  const isOutOfStock = product ? product.stock === 0 : false;
+
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || isOutOfStock) return;
     for (let i = 0; i < quantity; i++) {
       addToCart(product);
     }
@@ -113,6 +115,11 @@ export default function ProductDetailPage() {
               <span className="text-3xl font-bold text-vermelho-700">
                 {formatCurrency(product.price)}
               </span>
+              {isOutOfStock && (
+                <span className="ml-3 inline-block rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
+                  Esgotado
+                </span>
+              )}
             </div>
 
             {/* Quantity */}
@@ -142,12 +149,15 @@ export default function ProductDetailPage() {
             {/* CTA (desktop inline) */}
             <button
               onClick={handleAddToCart}
-              className="mt-8 hidden w-full items-center justify-center gap-2 rounded-full bg-gradient-to-br from-rosa-800 to-rosa-700 py-4 font-bold text-white shadow-lg hover:shadow-xl md:flex"
+              disabled={isOutOfStock}
+              className="mt-8 hidden w-full items-center justify-center gap-2 rounded-full bg-gradient-to-br from-rosa-800 to-rosa-700 py-4 font-bold text-white shadow-lg hover:shadow-xl disabled:opacity-50 md:flex"
             >
               <ShoppingBag className="h-[18px] w-[18px]" />
-              {added
-                ? "Adicionado! ✓"
-                : `Adicionar ao carrinho — ${formatCurrency(product.price * quantity)}`}
+              {isOutOfStock
+                ? "Produto esgotado"
+                : added
+                  ? "Adicionado! ✓"
+                  : `Adicionar ao carrinho — ${formatCurrency(product.price * quantity)}`}
             </button>
           </div>
         </div>
@@ -157,12 +167,15 @@ export default function ProductDetailPage() {
       <div className="fixed inset-x-0 bottom-24 z-30 border-t border-rosa-100 bg-white px-5 py-4 shadow-[0_-8px_24px_-12px_rgba(62,39,35,0.2)] md:hidden">
         <button
           onClick={handleAddToCart}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-br from-rosa-800 to-rosa-700 py-4 font-bold text-white shadow-lg"
+          disabled={isOutOfStock}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-br from-rosa-800 to-rosa-700 py-4 font-bold text-white shadow-lg disabled:opacity-50"
         >
           <ShoppingBag className="h-[18px] w-[18px]" />
-          {added
-            ? "Adicionado! ✓"
-            : `Adicionar — ${formatCurrency(product.price * quantity)}`}
+          {isOutOfStock
+            ? "Produto esgotado"
+            : added
+              ? "Adicionado! ✓"
+              : `Adicionar — ${formatCurrency(product.price * quantity)}`}
         </button>
       </div>
     </div>

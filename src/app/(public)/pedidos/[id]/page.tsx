@@ -105,9 +105,20 @@ export default function PedidoDetailPage() {
         ))}
       </Section>
 
-      {order.customer_address && (
+      {(order.customer_address || order.delivery_type) && (
         <Section title="Entrega">
-          <p className="text-[13px] text-marrom-700">{order.customer_address}</p>
+          {order.customer_address && (
+            <p className="mb-2 text-[13px] text-marrom-700">{order.customer_address}</p>
+          )}
+          {order.delivery_type && (
+            <p className="text-[13px] text-marrom-700">
+              {order.delivery_type === "entrega" ? "Entrega" : "Retirada"}
+              {order.delivery_date
+                ? ` em ${new Date(`${order.delivery_date}T00:00`).toLocaleDateString("pt-BR")}`
+                : ""}
+              {order.delivery_time ? ` às ${order.delivery_time}` : ""}
+            </p>
+          )}
         </Section>
       )}
 

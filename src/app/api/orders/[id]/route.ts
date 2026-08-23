@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { isValidUUID } from "@/lib/validation";
+import { auth } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth-guards";
 import type { Order, UpdateOrderInput, ApiResponse } from "@/types/api";
 
 interface RouteParams {
@@ -9,7 +11,15 @@ interface RouteParams {
   }>;
 }
 
-// GET /api/orders/:id - Buscar pedido específico
+const NOT_FOUND: ApiResponse<null> = {
+  success: false,
+  error: "Pedido não encontrado",
+};
+
+// GET /api/orders/:id - Buscar pedido específico. Gestora sempre pode; o
+// comprador só se for o dono (customer_id da sessão bate com o do pedido).
+// Qualquer outro caso devolve 404 (não 403) pra não confirmar a existência
+// do pedido a quem não tem acesso.
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: orderId } = await params;
@@ -27,10 +37,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     ]);
 
     if (orderResult.rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Pedido não encontrado" },
-        { status: 404 },
-      );
+      return NextResponse.json(NOT_FOUND, { status: 404 });
+    }
+
+    const order = orderResult.rows[0];
+    const session = await auth();
+    const isOwner =
+      session?.user.role === "customer" && order.customer_id === session.user.id;
+    const isStaff = session?.user.role === "staff";
+    if (!isStaff && !isOwner) {
+      return NextResponse.json(NOT_FOUND, { status: 404 });
     }
 
     const itemsResult = await query(
@@ -59,8 +75,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PATCH /api/orders/:id - Atualizar pedido
+// PATCH /api/orders/:id - Atualizar pedido (só gestora)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
   try {
     const { id: orderId } = await params;
     const body: UpdateOrderInput = await request.json();
@@ -126,6 +145,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       paramIndex++;
     }
 
+    if (body.delivery_type !== undefined) {
+      fields.push(`delivery_type = $${paramIndex}`);
+      values.push(body.delivery_type);
+      paramIndex++;
+    }
+
+    if (body.delivery_date !== undefined) {
+      fields.push(`delivery_date = $${paramIndex}`);
+      values.push(body.delivery_date);
+      paramIndex++;
+    }
+
+    if (body.delivery_time !== undefined) {
+      fields.push(`delivery_time = $${paramIndex}`);
+      values.push(body.delivery_time);
+      paramIndex++;
+    }
+
     if (fields.length === 0) {
       return NextResponse.json(
         { success: false, error: "Nenhum campo fornecido para atualização" },
@@ -168,8 +205,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/orders/:id - Deletar pedido (cascata deleta itens)
+// DELETE /api/orders/:id - Deletar pedido (cascata deleta itens; só gestora)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
   try {
     const { id: orderId } = await params;
 

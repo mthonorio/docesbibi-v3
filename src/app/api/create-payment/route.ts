@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { z } from "zod";
 import { query } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import {
   createOrder,
   setOrderExternalReference,
@@ -28,6 +29,9 @@ const CreatePreferenceSchema = z.object({
   }),
   customer_address: z.string().optional(),
   notes: z.string().optional(),
+  delivery_type: z.enum(["retirada", "entrega"]).optional(),
+  delivery_date: z.string().optional(),
+  delivery_time: z.string().optional(),
 });
 
 // ========== INTERFACE PARA PRODUTO ==========
@@ -36,6 +40,8 @@ interface ProductFromDB {
   name: string;
   price: number;
   description?: string;
+  active: boolean;
+  stock: number | null;
 }
 
 // ========== TIPOS DA PREFERÊNCIA MERCADO PAGO ==========
@@ -84,7 +90,7 @@ async function getProductsFromDatabase(
 
   try {
     const result = await query(
-      `SELECT id, name, price, description FROM products WHERE id = ANY($1::uuid[])`,
+      `SELECT id, name, price, description, active, stock FROM products WHERE id = ANY($1::uuid[])`,
       [productIds],
     );
 
@@ -95,6 +101,8 @@ async function getProductsFromDatabase(
         name: product.name,
         price: Number(product.price),
         description: product.description,
+        active: product.active,
+        stock: product.stock === null ? null : Number(product.stock),
       });
     });
 
@@ -198,17 +206,55 @@ export async function POST(req: Request) {
       );
     }
 
+    // ========== VALIDAR DISPONIBILIDADE (ATIVO / ESTOQUE) ==========
+    // Mesma lógica de "nunca confiar no client" já usada pro preço: a
+    // vitrine pode estar com cache velho mostrando um produto desativado ou
+    // sem estoque, então revalidamos aqui antes de gerar a cobrança.
+    for (const item of validData.items) {
+      const product = productsFromDB.get(item.product_id)!;
+      if (!product.active) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Produto "${product.name}" não está mais disponível`,
+          },
+          { status: 409 },
+        );
+      }
+      if (product.stock !== null && item.quantity > product.stock) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Estoque insuficiente para "${product.name}"`,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    // Se o comprador estiver logado, o pedido nasce já vinculado à conta —
+    // não depende do "claim" por e-mail feito no cadastro (ver
+    // src/app/api/auth/register/route.ts). Checkout de visitante continua
+    // funcionando normalmente (session fica undefined nesse caso).
+    const session = await auth();
+    const customerId =
+      session?.user.role === "customer" ? session.user.id : undefined;
+
     // ========== CRIAR O PEDIDO ANTES DE COBRAR ==========
     // O pedido nasce aqui, com status "aguardando_pagamento" — é o que o
     // webhook (/api/webhook) vai localizar e atualizar quando o Mercado
     // Pago confirmar o pagamento. Sem isso, pagar não gerava pedido algum.
     const order = await createOrder(
       {
+        customer_id: customerId,
         customer_name: validData.payer.name || "Cliente",
         customer_email: validData.payer.email,
         customer_phone: validData.payer.phone?.number,
         customer_address: validData.customer_address,
         notes: validData.notes,
+        delivery_type: validData.delivery_type,
+        delivery_date: validData.delivery_date,
+        delivery_time: validData.delivery_time,
         items: validData.items,
       },
       { status: "aguardando_pagamento" },

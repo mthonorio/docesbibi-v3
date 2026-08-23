@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { createOrder } from "@/lib/orders-service";
+import { requireStaff } from "@/lib/auth-guards";
 import {
   sendOrderConfirmationEmail,
   sendNewOrderNotificationEmail,
 } from "@/lib/email";
 import type { Order, CreateOrderInput, ApiResponse } from "@/types/api";
 
-// GET /api/orders - Listar todos os pedidos com filtro opcional
+// GET /api/orders - Listar todos os pedidos com filtro opcional (só gestora
+// — lista todos os clientes, PII incluído; comprador usa /api/orders/mine)
 export async function GET(request: NextRequest) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -70,8 +75,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/orders - Criar novo pedido (pedido manual, sem pagamento online)
+// POST /api/orders - Criar novo pedido (pedido manual da gestora, sem
+// pagamento online; checkout do comprador usa /api/create-payment)
 export async function POST(request: NextRequest) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
   try {
     const body: CreateOrderInput = await request.json();
 

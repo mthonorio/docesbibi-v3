@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useOrderStore } from "@/store/order.store";
-import type { CreateOrderInput } from "@/types/api";
+import type { CreateOrderInput, DeliveryType } from "@/types/api";
 import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";
 import { Alert } from "@/components/atoms/Alert";
@@ -22,6 +22,9 @@ export function CreateOrderForm() {
     customer_phone: "",
     customer_address: "",
     notes: "",
+    delivery_type: "" as DeliveryType | "",
+    delivery_date: "",
+    delivery_time: "",
   });
 
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -70,6 +73,9 @@ export function CreateOrderForm() {
         customer_phone: formData.customer_phone || undefined,
         customer_address: formData.customer_address,
         notes: formData.notes || undefined,
+        delivery_type: formData.delivery_type || undefined,
+        delivery_date: formData.delivery_date || undefined,
+        delivery_time: formData.delivery_time || undefined,
         items,
       };
 
@@ -84,6 +90,9 @@ export function CreateOrderForm() {
         customer_phone: "",
         customer_address: "",
         notes: "",
+        delivery_type: "",
+        delivery_date: "",
+        delivery_time: "",
       });
       setItems([]);
 
@@ -179,6 +188,50 @@ export function CreateOrderForm() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Deixar no portão, entregar até tal hora, etc..."
             />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Entrega (opcional)
+              </label>
+              <select
+                value={formData.delivery_type}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    delivery_type: e.target.value as DeliveryType | "",
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sem agendamento</option>
+                <option value="retirada">Retirada</option>
+                <option value="entrega">Entrega</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Data</label>
+              <input
+                type="date"
+                name="delivery_date"
+                value={formData.delivery_date}
+                onChange={handleInputChange}
+                disabled={!formData.delivery_type}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Horário</label>
+              <input
+                type="time"
+                name="delivery_time"
+                value={formData.delivery_time}
+                onChange={handleInputChange}
+                disabled={!formData.delivery_type}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              />
+            </div>
           </div>
         </div>
 

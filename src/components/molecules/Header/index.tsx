@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { Menu, X, ShoppingBag } from "lucide-react";
+import { Menu, X, ShoppingBag, User } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 
 interface HeaderProps {
   scrollShadow: boolean;
@@ -19,6 +20,10 @@ export function Header({
   onMobileMenuClose,
   totalItems,
 }: HeaderProps) {
+  const { data: session } = useSession();
+  const customerName =
+    session?.user.role === "customer" ? session.user.name : null;
+
   return (
     <nav
       className={`fixed w-full bg-white/90 backdrop-blur-md z-50 transition-all duration-300 ${
@@ -73,6 +78,16 @@ export function Header({
             >
               Contato
             </a>
+            {customerName && (
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex items-center gap-1.5 text-sm text-marrom-700 hover:text-rosa-800"
+                title="Sair da conta"
+              >
+                <User className="w-4 h-4" />
+                {customerName.split(" ")[0]}
+              </button>
+            )}
             <button
               onClick={onCartOpen}
               className="relative bg-rosa-800 text-white p-2 rounded-full hover:bg-vermelho-700 transition-colors"

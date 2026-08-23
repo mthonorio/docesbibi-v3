@@ -23,6 +23,8 @@ FILES=(
   "002_payment_flow.sql"
   "004_auth_users.sql"
   "005_payment_events_status_key.sql"
+  "006_customers.sql"
+  "007_delivery_and_stock.sql"
 )
 
 for f in "${FILES[@]}"; do
