@@ -14,43 +14,51 @@ interface CartItemProps {
 
 export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
   return (
-    <div className="flex gap-4 bg-rosa-50 p-4 rounded-xl">
+    <div className="flex gap-3.5 py-4 border-b border-rosa-100 last:border-b-0">
       <img
         src={item.image}
         alt={item.name}
-        className="w-20 h-20 object-cover rounded-lg"
+        className="w-[76px] h-[76px] object-cover rounded-2xl shrink-0"
       />
-      <div className="flex-1">
-        <h4 className="font-semibold text-marrom-900 text-sm mb-1">
-          {item.name}
-        </h4>
-        <p className="text-vermelho-700 font-bold">
-          {formatCurrency(item.price)}
-        </p>
-        <div className="flex items-center gap-2 mt-2">
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-start gap-2">
+          <h4 className="font-semibold text-marrom-900 text-sm leading-tight">
+            {item.name}
+          </h4>
           <button
-            onClick={() => onUpdateQuantity(item.id, -1)}
-            className="w-6 h-6 rounded-full bg-white border border-rosa-300 flex items-center justify-center hover:bg-rosa-100"
+            onClick={() => onRemove(item.id)}
+            className="text-marrom-400 hover:text-vermelho-700 shrink-0"
+            aria-label={`Remover ${item.name}`}
           >
-            <Minus className="w-3 h-3" />
-          </button>
-          <span className="text-sm font-semibold w-6 text-center">
-            {item.quantity}
-          </span>
-          <button
-            onClick={() => onUpdateQuantity(item.id, 1)}
-            className="w-6 h-6 rounded-full bg-white border border-rosa-300 flex items-center justify-center hover:bg-rosa-100"
-          >
-            <Plus className="w-3 h-3" />
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
+
+        <div className="flex items-center justify-between mt-2.5">
+          <div className="inline-flex items-center rounded-full border-2 border-rosa-100">
+            <button
+              onClick={() => onUpdateQuantity(item.id, -1)}
+              className="w-7 h-7 flex items-center justify-center"
+              aria-label="Diminuir quantidade"
+            >
+              <Minus className="w-3 h-3 text-marrom-900" strokeWidth={2.5} />
+            </button>
+            <span className="text-xs font-bold w-6 text-center">
+              {item.quantity}
+            </span>
+            <button
+              onClick={() => onUpdateQuantity(item.id, 1)}
+              className="w-7 h-7 flex items-center justify-center"
+              aria-label="Aumentar quantidade"
+            >
+              <Plus className="w-3 h-3 text-marrom-900" strokeWidth={2.5} />
+            </button>
+          </div>
+          <span className="text-vermelho-700 font-bold text-[15px]">
+            {formatCurrency(item.price * item.quantity)}
+          </span>
+        </div>
       </div>
-      <button
-        onClick={() => onRemove(item.id)}
-        className="text-marrom-400 hover:text-vermelho-700"
-      >
-        <Trash2 className="w-5 h-5" />
-      </button>
     </div>
   );
 }

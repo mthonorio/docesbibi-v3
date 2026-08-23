@@ -8,6 +8,8 @@ import { logger } from "@/lib/mercadopago";
 interface MercadoPagoButtonProps {
   email?: string;
   customerName?: string;
+  customerAddress?: string;
+  notes?: string;
   onError?: (error: string) => void;
   onLoading?: (isLoading: boolean) => void;
   className?: string;
@@ -22,6 +24,8 @@ interface MercadoPagoButtonProps {
 export function MercadoPagoButton({
   email = "",
   customerName = "",
+  customerAddress = "",
+  notes = "",
   onError,
   onLoading,
   className = "",
@@ -77,6 +81,8 @@ export function MercadoPagoButton({
           email,
           name: customerName || "Cliente",
         },
+        customer_address: customerAddress || undefined,
+        notes: notes || undefined,
       };
 
       logger.info(

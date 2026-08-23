@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { CartItem } from "./CartItem";
 import { Product } from "@/types/api";
@@ -43,9 +43,16 @@ export function CartSheet({
       >
         {/* Header */}
         <div className="p-6 border-b border-rosa-100 flex justify-between items-center bg-rosa-50">
-          <h3 className="font-serif text-2xl font-bold text-marrom-900">
-            Seu Carrinho
-          </h3>
+          <div>
+            <h3 className="font-serif text-2xl font-bold text-marrom-900">
+              Seu Carrinho
+            </h3>
+            {items.length > 0 && (
+              <span className="text-xs text-marrom-500">
+                {items.reduce((sum, i) => sum + i.quantity, 0)} itens
+              </span>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-rosa-200 rounded-full transition-colors"
@@ -55,11 +62,26 @@ export function CartSheet({
         </div>
 
         {/* Items */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6">
           {items.length === 0 ? (
-            <p className="text-marrom-500 text-center py-8">
-              Seu carrinho está vazio
-            </p>
+            <div className="flex flex-col items-center justify-center h-full text-center px-4">
+              <div className="w-16 h-16 rounded-full bg-rosa-50 flex items-center justify-center mb-4">
+                <ShoppingBag className="w-7 h-7 text-rosa-300" strokeWidth={1.5} />
+              </div>
+              <p className="font-semibold text-marrom-800 mb-1">
+                Seu carrinho está vazio
+              </p>
+              <p className="text-sm text-marrom-500 mb-5">
+                Que tal experimentar nossos docinhos?
+              </p>
+              <Link
+                href="/products"
+                onClick={onClose}
+                className="bg-rosa-800 text-white px-6 py-2.5 rounded-full font-semibold text-sm hover:bg-vermelho-700 transition-colors"
+              >
+                Ver produtos
+              </Link>
+            </div>
           ) : (
             items.map((item) => (
               <CartItem
@@ -73,19 +95,29 @@ export function CartSheet({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-rosa-100 bg-rosa-50">
-          <div className="flex justify-between mb-4 text-lg font-semibold">
-            <span>Total:</span>
-            <span>{formatCurrency(totalPrice)}</span>
+        {items.length > 0 && (
+          <div className="p-6 border-t border-rosa-100 bg-rosa-50">
+            <div className="flex justify-between items-baseline mb-4">
+              <span className="font-semibold text-marrom-800">Total</span>
+              <span className="text-2xl font-bold text-vermelho-700">
+                {formatCurrency(totalPrice)}
+              </span>
+            </div>
+            <Link
+              href="/checkout"
+              className="block w-full bg-gradient-to-br from-rosa-800 to-rosa-700 text-white py-3.5 rounded-full hover:shadow-lg transition-all font-semibold text-center shadow-md"
+              onClick={onClose}
+            >
+              Finalizar Compra
+            </Link>
+            <button
+              onClick={onClose}
+              className="w-full text-center text-marrom-500 text-sm font-semibold mt-3 hover:text-marrom-800"
+            >
+              Continuar comprando
+            </button>
           </div>
-          <Link
-            href="/checkout"
-            className="block w-full bg-rosa-800 text-white py-3 rounded-full hover:bg-vermelho-700 transition-colors font-semibold text-center"
-            onClick={onClose}
-          >
-            Finalizar Compra
-          </Link>
-        </div>
+        )}
       </div>
     </>
   );

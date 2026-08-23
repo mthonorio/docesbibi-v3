@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, User, Phone } from "lucide-react";
+import { Mail, User, Phone, MapPin, MessageSquare } from "lucide-react";
 import { MercadoPagoButton } from "@/components/atoms/MercadoPagoButton";
 import { useCartStore } from "@/store/cart.store";
 
@@ -9,11 +9,27 @@ type CheckoutFormData = {
   name: string;
   email: string;
   phone: string;
+  address: string;
+  notes: string;
 };
+
+function SectionLabel({ step, title }: { step: number; title: string }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-4">
+      <span className="w-6 h-6 rounded-full bg-rosa-800 text-white text-xs font-bold flex items-center justify-center shrink-0">
+        {step}
+      </span>
+      <h3 className="font-semibold text-marrom-900 text-[15px]">{title}</h3>
+    </div>
+  );
+}
+
+const fieldClass =
+  "w-full px-4 py-3 border border-rosa-100 rounded-xl focus:outline-none focus:border-rosa-800 text-sm";
 
 /**
  * Componente: MercadoPagoCheckoutForm
- * - Coleta dados do cliente
+ * - Coleta dados do cliente, endereço e observações
  * - Exibe resumo do carrinho
  * - Integra botão de pagamento MP
  */
@@ -22,6 +38,8 @@ export function MercadoPagoCheckoutForm() {
     name: "",
     email: "",
     phone: "",
+    address: "",
+    notes: "",
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +50,9 @@ export function MercadoPagoCheckoutForm() {
     0,
   );
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -48,68 +68,103 @@ export function MercadoPagoCheckoutForm() {
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Formulário */}
-        <div className="space-y-6">
-          <h3 className="font-semibold text-marrom-900 text-lg mb-4">
-            Seus Dados
-          </h3>
-
-          {/* Nome */}
+        <div className="space-y-7">
+          {/* 1. Dados */}
           <div>
-            <label className="block text-sm font-semibold text-marrom-900 mb-2">
-              <User className="inline w-4 h-4 mr-2" />
-              Nome Completo
+            <SectionLabel step={1} title="Seus dados" />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-marrom-900 mb-1.5">
+                  <User className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
+                  Nome Completo
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="João Silva"
+                  className={fieldClass}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-marrom-900 mb-1.5">
+                  <Mail className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="seu@email.com"
+                  className={fieldClass}
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-marrom-500 mt-1">
+                  Usaremos para enviar a confirmação do pedido
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-marrom-900 mb-1.5">
+                  <Phone className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
+                  Telefone (opcional)
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="(11) 99999-9999"
+                  className={fieldClass}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Endereço */}
+          <div>
+            <SectionLabel step={2} title="Endereço de entrega" />
+            <label className="block text-xs font-bold text-marrom-900 mb-1.5">
+              <MapPin className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
+              Endereço completo (opcional pra retirada no local)
             </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
+            <textarea
+              name="address"
+              value={formData.address}
               onChange={handleInputChange}
-              placeholder="João Silva"
-              className="w-full px-4 py-3 border border-marrom-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rosa-600"
+              placeholder="Rua, número, bairro, cidade"
+              rows={2}
+              className={fieldClass}
               disabled={isLoading}
             />
           </div>
 
-          {/* Email */}
+          {/* 3. Observações */}
           <div>
-            <label className="block text-sm font-semibold text-marrom-900 mb-2">
-              <Mail className="inline w-4 h-4 mr-2" />
-              E-mail
+            <SectionLabel step={3} title="Observações do pedido" />
+            <label className="block text-xs font-bold text-marrom-900 mb-1.5">
+              <MessageSquare className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
+              Alguma preferência? (opcional)
             </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
+            <textarea
+              name="notes"
+              value={formData.notes}
               onChange={handleInputChange}
-              placeholder="seu@email.com"
-              className="w-full px-4 py-3 border border-marrom-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rosa-600"
-              disabled={isLoading}
-            />
-            <p className="text-xs text-marrom-600 mt-1">
-              Usaremos para enviar confirmação do pedido
-            </p>
-          </div>
-
-          {/* Telefone */}
-          <div>
-            <label className="block text-sm font-semibold text-marrom-900 mb-2">
-              <Phone className="inline w-4 h-4 mr-2" />
-              Telefone (Opcional)
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              placeholder="(11) 99999-9999"
-              className="w-full px-4 py-3 border border-marrom-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rosa-600"
+              placeholder="Ex.: sem açúcar, embalar pra presente..."
+              rows={2}
+              className={fieldClass}
               disabled={isLoading}
             />
           </div>
         </div>
 
         {/* Resumo do Carrinho */}
-        <div className="bg-rosa-50 rounded-2xl p-6 border border-rosa-200 h-fit">
+        <div className="bg-rosa-50 rounded-2xl p-6 border border-rosa-100 h-fit">
           <h3 className="font-semibold text-marrom-900 text-lg mb-4">
             Resumo do Pedido
           </h3>
@@ -123,27 +178,27 @@ export function MercadoPagoCheckoutForm() {
                 >
                   <div>
                     <p className="font-semibold text-marrom-900">{item.name}</p>
-                    <p className="text-xs text-marrom-600">
-                      Qty: {item.quantity}
+                    <p className="text-xs text-marrom-500">
+                      Qtd: {item.quantity}
                     </p>
                   </div>
-                  <p className="font-semibold text-rosa-800">
+                  <p className="font-semibold text-vermelho-700">
                     R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2)}
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-marrom-600 text-sm text-center py-4">
+              <p className="text-marrom-500 text-sm text-center py-4">
                 Carrinho vazio
               </p>
             )}
           </div>
 
           {/* Total */}
-          <div className="border-t-2 border-rosa-300 pt-4">
-            <div className="flex justify-between items-center mb-4">
-              <span className="font-semibold text-marrom-900">Total:</span>
-              <span className="text-2xl font-bold text-rosa-800">
+          <div className="border-t-2 border-rosa-200 pt-4">
+            <div className="flex justify-between items-baseline mb-4">
+              <span className="font-semibold text-marrom-900">Total</span>
+              <span className="text-2xl font-bold text-vermelho-700">
                 R$ {totalAmount.toFixed(2)}
               </span>
             </div>
@@ -152,13 +207,15 @@ export function MercadoPagoCheckoutForm() {
             <MercadoPagoButton
               email={formData.email}
               customerName={formData.name}
+              customerAddress={formData.address}
+              notes={formData.notes}
               onLoading={setIsLoading}
               className="mt-6"
             />
           </div>
 
           {/* Aviso de segurança */}
-          <p className="text-xs text-marrom-600 mt-4 text-center">
+          <p className="text-xs text-marrom-500 mt-4 text-center">
             🔒 Sua transação é segura e protegida pelo Mercado Pago
           </p>
         </div>
