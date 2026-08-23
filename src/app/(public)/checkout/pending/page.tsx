@@ -96,7 +96,7 @@ function PendingPageContent() {
               Voltar para Home
             </Link>
             <Link
-              href="/orders"
+              href="/pedidos"
               className="border-2 border-marrom-400 text-marrom-800 px-8 py-4 rounded-full hover:bg-marrom-800 hover:text-white transition-all duration-300 font-semibold"
             >
               Acompanhar Pedido

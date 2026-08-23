@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { addCorsHeaders, corsOptionsResponse } from "@/lib/cors";
 
-// Rotas que só a gestora (staff) pode ver. Hoje só /orders — que hoje age
-// como um mini-admin. Quando o painel /admin (Fase 3) existir, ele entra aqui.
-const PROTECTED_PATHS = ["/orders"];
+// Rotas que só a gestora (staff) pode ver. Note que "/admin/login" NÃO
+// entra aqui de propósito — protegê-la criaria um loop de redirect
+// (deslogado → /admin/login → "protegido, redireciona pra /admin/login"…).
+const PROTECTED_PATHS = ["/admin/dashboard", "/admin/vendas", "/admin/produtos"];
 
 // `auth()` do NextAuth envolve o handler e injeta `request.auth` (sessão
 // decodificada do cookie JWT — não bate no banco aqui, só verifica a

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { isValidUUID } from "@/lib/validation";
 import { Product, UpdateProductInput, ApiResponse } from "@/types/api";
 
 interface ParamsProps {
@@ -8,14 +9,52 @@ interface ParamsProps {
   }>;
 }
 
+// GET /api/products/[id] - buscar um produto
+export async function GET(request: NextRequest, { params }: ParamsProps) {
+  try {
+    const { id } = await params;
+
+    if (!isValidUUID(id)) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: "ID inválido",
+      };
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    const result = await query("SELECT * FROM products WHERE id = $1", [id]);
+
+    if (result.rows.length === 0) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: "Produto não encontrado",
+      };
+      return NextResponse.json(response, { status: 404 });
+    }
+
+    const response: ApiResponse<Product> = {
+      success: true,
+      data: result.rows[0],
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error("GET /api/products/[id] error:", error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: error instanceof Error ? error.message : "Erro ao buscar produto",
+    };
+    return NextResponse.json(response, { status: 500 });
+  }
+}
+
 // PATCH /api/products/[id] - atualizar produto
 export async function PATCH(request: NextRequest, { params }: ParamsProps) {
   try {
     const { id } = await params;
     const body: UpdateProductInput = await request.json();
 
-    // Validar se o ID é válido
-    if (!id || isNaN(Number(id))) {
+    if (!isValidUUID(id)) {
       const response: ApiResponse<null> = {
         success: false,
         error: "ID inválido",
@@ -64,7 +103,7 @@ export async function PATCH(request: NextRequest, { params }: ParamsProps) {
 
     fields.push(`updated_at = $${paramIndex}`);
     values.push(new Date());
-    values.push(Number(id));
+    values.push(id);
 
     const sql = `
       UPDATE products
@@ -105,8 +144,7 @@ export async function DELETE(request: NextRequest, { params }: ParamsProps) {
   try {
     const { id } = await params;
 
-    // Validar se o ID é válido
-    if (!id || isNaN(Number(id))) {
+    if (!isValidUUID(id)) {
       const response: ApiResponse<null> = {
         success: false,
         error: "ID inválido",
@@ -114,8 +152,9 @@ export async function DELETE(request: NextRequest, { params }: ParamsProps) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    const sql = "SELECT * FROM products WHERE id = $1";
-    const selectResult = await query(sql, [Number(id)]);
+    const selectResult = await query("SELECT id FROM products WHERE id = $1", [
+      id,
+    ]);
 
     if (selectResult.rows.length === 0) {
       const response: ApiResponse<null> = {
@@ -125,12 +164,11 @@ export async function DELETE(request: NextRequest, { params }: ParamsProps) {
       return NextResponse.json(response, { status: 404 });
     }
 
-    const deleteSql = "DELETE FROM products WHERE id = $1";
-    await query(deleteSql, [Number(id)]);
+    await query("DELETE FROM products WHERE id = $1", [id]);
 
-    const response: ApiResponse<{ id: number }> = {
+    const response: ApiResponse<{ id: string }> = {
       success: true,
-      data: { id: Number(id) },
+      data: { id },
     };
 
     return NextResponse.json(response);

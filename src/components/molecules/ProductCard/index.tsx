@@ -1,5 +1,6 @@
 import { formatCurrency } from "@/functions/currency";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 
 interface Product {
   id: string;
@@ -20,31 +21,36 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover-lift group">
       {/* Image Container */}
       <div className="relative overflow-hidden aspect-square">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
+        <Link href={`/products/${product.id}`} className="block h-full w-full">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+        </Link>
 
         {/* Add Button */}
         <button
           onClick={() => onAddToCart(product.id)}
-          className="absolute bottom-4 right-4 bg-rosa-800 text-white p-3 rounded-full shadow-lg hover:bg-vermelho-700 transition-all transform translate-y-12 group-hover:translate-y-0"
+          aria-label={`Adicionar ${product.name} ao carrinho`}
+          className="absolute bottom-4 right-4 bg-rosa-800 text-white p-3 rounded-full shadow-lg hover:bg-vermelho-700 transition-all transform translate-y-12 group-hover:translate-y-0 z-10"
         >
           <Plus className="w-6 h-6" />
         </button>
 
         {/* Category Badge */}
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold text-marrom-800">
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold text-marrom-800 pointer-events-none">
           {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
         </div>
       </div>
 
       {/* Content */}
       <div className="p-6">
-        <h3 className="font-serif text-lg font-semibold text-marrom-900 mb-1">
-          {product.name}
-        </h3>
+        <Link href={`/products/${product.id}`}>
+          <h3 className="font-serif text-lg font-semibold text-marrom-900 mb-1 hover:text-rosa-800 transition-colors">
+            {product.name}
+          </h3>
+        </Link>
         <p className="text-marrom-500 text-sm mb-3">{product.description}</p>
 
         {/* Price and Action */}

@@ -1,7 +1,9 @@
+import { LayoutClient } from "../layout-client";
+
 export default function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>{children}</>;
+  return <LayoutClient>{children}</LayoutClient>;
 }

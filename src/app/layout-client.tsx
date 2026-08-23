@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CartSheet } from "@/components/molecules/CartSheet";
 import Footer from "@/components/molecules/Footer";
 import { Header } from "@/components/molecules/Header";
+import { BottomNav } from "@/components/molecules/BottomNav";
 import { useCartStore } from "@/store/cart.store";
 import { useUIStore } from "@/store/ui.store";
 
@@ -57,7 +58,7 @@ export function LayoutClient({ children }: LayoutClientProps) {
         onMobileMenuClose={() => setMobileMenuOpen(false)}
         totalItems={isHydrated ? totalItems() : 0}
       />
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main className="flex-1 flex flex-col pb-24 md:pb-0">{children}</main>
       <CartSheet
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
@@ -67,6 +68,7 @@ export function LayoutClient({ children }: LayoutClientProps) {
         onRemoveItem={removeFromCart}
       />
       <Footer />
+      <BottomNav />
     </>
   );
 }

@@ -55,6 +55,12 @@ export function Header({
               Produtos
             </a>
             <a
+              href="/pedidos"
+              className="text-marrom-700 hover:text-rosa-800 font-medium"
+            >
+              Meus Pedidos
+            </a>
+            <a
               href="/#sobre"
               className="text-marrom-700 hover:text-rosa-800 font-medium"
             >
@@ -127,6 +133,13 @@ export function Header({
               onClick={onMobileMenuClose}
             >
               Produtos
+            </a>
+            <a
+              href="/pedidos"
+              className="block px-3 py-2 text-marrom-700 hover:bg-rosa-50 rounded-md"
+              onClick={onMobileMenuClose}
+            >
+              Meus Pedidos
             </a>
             <a
               href="/#sobre"

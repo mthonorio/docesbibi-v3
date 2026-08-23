@@ -46,7 +46,7 @@ export const productApi = {
   },
 
   // GET - Buscar um produto específico
-  async getById(id: number): Promise<Product> {
+  async getById(id: string): Promise<Product> {
     const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
       method: "GET",
       headers: {
@@ -75,7 +75,7 @@ export const productApi = {
   },
 
   // PATCH - Atualizar produto
-  async update(id: number, updates: UpdateProductInput): Promise<Product> {
+  async update(id: string, updates: UpdateProductInput): Promise<Product> {
     const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
       method: "PATCH",
       headers: {
@@ -88,7 +88,7 @@ export const productApi = {
   },
 
   // DELETE - Deletar produto
-  async delete(id: number): Promise<{ id: number }> {
+  async delete(id: string): Promise<{ id: string }> {
     const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
       method: "DELETE",
       headers: {
@@ -96,7 +96,7 @@ export const productApi = {
       },
     });
 
-    return handleResponse<{ id: number }>(response);
+    return handleResponse<{ id: string }>(response);
   },
 };
 

@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Playfair_Display, Lato } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Providers from "./providers";
-import { LayoutClient } from "./layout-client";
 
 const lato = Lato({
   subsets: ["latin"],
@@ -54,9 +53,7 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <Providers>
-          <LayoutClient>{children}</LayoutClient>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -19,6 +19,12 @@ interface PaymentInfo {
   status: string;
 }
 
+// O status na URL vem do redirect do MP e pode ser forjado por qualquer um
+// só editando a query string — não é prova de pagamento. A prova real é
+// consultar o pagamento no backend (GET /api/payments/[id], que por sua vez
+// consulta a API do MP), nunca confiar no que veio na URL.
+type VerifiedStatus = "checking" | "approved" | "pending" | "other" | "unknown";
+
 function SuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,43 +32,56 @@ function SuccessPageContent() {
   const [email, setEmail] = useState<string>("");
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [verifiedStatus, setVerifiedStatus] = useState<VerifiedStatus>("checking");
 
   useEffect(() => {
-    // Capturar parâmetros do Mercado Pago
     const paymentId = searchParams.get("payment_id");
     const merchantOrderId = searchParams.get("merchant_order_id");
-    const status = searchParams.get("status");
     const externalReference = searchParams.get("external_reference");
+    const customerEmail = searchParams.get("email") || "";
+    setEmail(customerEmail);
 
     logger.info("SUCCESS_PAGE", "Parâmetros recebidos", {
       paymentId,
       merchantOrderId,
-      status,
       externalReference,
     });
 
-    // Se vem do MP, usar esses dados; senão usar da URL
-    if (paymentId) {
-      const number = externalReference || paymentId;
-      setOrderNumber(number);
-      setPaymentInfo({
-        paymentId,
-        merchantOrderId: merchantOrderId || "",
-        email: searchParams.get("email") || "",
-        status: status || "approved",
-      });
-    } else {
-      // Fallback para testes
-      const number =
-        searchParams.get("orderNumber") ||
-        "DOC-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-      setOrderNumber(number);
+    if (!paymentId) {
+      // Ninguém veio do redirect do MP (ex.: acesso direto à URL) — não há
+      // o que verificar, e não afirmamos que uma compra foi confirmada.
+      setVerifiedStatus("unknown");
+      setIsLoading(false);
+      return;
     }
 
-    const customerEmail = searchParams.get("email") || "";
-    setEmail(customerEmail);
+    setOrderNumber(externalReference || paymentId);
 
-    setIsLoading(false);
+    fetch(`/api/payments/${encodeURIComponent(paymentId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const realStatus: string | undefined = data?.payment?.status;
+        setPaymentInfo({
+          paymentId,
+          merchantOrderId: merchantOrderId || "",
+          email: customerEmail,
+          status: realStatus || "unknown",
+        });
+        setVerifiedStatus(
+          realStatus === "approved"
+            ? "approved"
+            : realStatus === "pending" || realStatus === "in_process"
+              ? "pending"
+              : "other",
+        );
+      })
+      .catch((err) => {
+        logger.error("SUCCESS_PAGE", "Falha ao verificar pagamento no backend", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        setVerifiedStatus("other");
+      })
+      .finally(() => setIsLoading(false));
   }, [searchParams]);
 
   const estimatedDate = new Date();
@@ -93,15 +112,51 @@ function SuccessPageContent() {
             </div>
           </div>
 
-          {/* Main Heading */}
-          <h1 className="font-serif text-4xl md:text-6xl font-bold text-marrom-900 mb-4">
-            Compra Confirmada! 🎉
-          </h1>
-
-          <p className="text-marrom-600 text-lg mb-8 leading-relaxed max-w-2xl mx-auto">
-            Obrigado pela sua compra! Seus doces artesanais estão sendo
-            preparados com todo o cuidado e carinho.
-          </p>
+          {/* Main Heading — texto muda conforme o status verificado no backend,
+              nunca conforme o que veio (sem garantia) na query string */}
+          {verifiedStatus === "checking" ? (
+            <>
+              <h1 className="font-serif text-4xl md:text-6xl font-bold text-marrom-900 mb-4">
+                Confirmando seu pagamento...
+              </h1>
+              <p className="text-marrom-600 text-lg mb-8 leading-relaxed max-w-2xl mx-auto">
+                Só um instante enquanto verificamos o status junto ao Mercado
+                Pago.
+              </p>
+            </>
+          ) : verifiedStatus === "approved" ? (
+            <>
+              <h1 className="font-serif text-4xl md:text-6xl font-bold text-marrom-900 mb-4">
+                Compra Confirmada! 🎉
+              </h1>
+              <p className="text-marrom-600 text-lg mb-8 leading-relaxed max-w-2xl mx-auto">
+                Obrigado pela sua compra! Seus doces artesanais estão sendo
+                preparados com todo o cuidado e carinho.
+              </p>
+            </>
+          ) : verifiedStatus === "pending" ? (
+            <>
+              <h1 className="font-serif text-4xl md:text-6xl font-bold text-marrom-900 mb-4">
+                Pagamento em Análise
+              </h1>
+              <p className="text-marrom-600 text-lg mb-8 leading-relaxed max-w-2xl mx-auto">
+                Recebemos sua tentativa de pagamento e estamos aguardando a
+                confirmação do Mercado Pago. Você receberá um e-mail assim
+                que for aprovado.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="font-serif text-4xl md:text-6xl font-bold text-marrom-900 mb-4">
+                Não conseguimos confirmar seu pagamento
+              </h1>
+              <p className="text-marrom-600 text-lg mb-8 leading-relaxed max-w-2xl mx-auto">
+                Se você concluiu o pagamento e viu esta mensagem, entre em
+                contato conosco com o número abaixo para confirmarmos
+                manualmente.
+              </p>
+            </>
+          )}
 
           {/* Order Number */}
           {orderNumber && (
@@ -123,24 +178,20 @@ function SuccessPageContent() {
 
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/"
-              className="bg-rosa-800 text-white px-8 py-4 rounded-full hover:bg-vermelho-700 transition-colors font-semibold shadow-lg"
-            >
-              Continuar Comprando
-            </Link>
-            {/* <Link
-              href="/orders"
-              className="bg-rosa-800 text-white px-8 py-4 rounded-full hover:bg-vermelho-700 transition-colors font-semibold shadow-lg"
-            >
-              Rastrear Pedido
-            </Link>
+            {orderNumber && verifiedStatus !== "unknown" && (
+              <Link
+                href={`/pedidos/${orderNumber}`}
+                className="bg-rosa-800 text-white px-8 py-4 rounded-full hover:bg-vermelho-700 transition-colors font-semibold shadow-lg"
+              >
+                Acompanhar Pedido
+              </Link>
+            )}
             <Link
               href="/"
               className="border-2 border-marrom-400 text-marrom-800 px-8 py-4 rounded-full hover:bg-marrom-800 hover:text-white transition-all duration-300 font-semibold"
             >
               Continuar Comprando
-            </Link> */}
+            </Link>
           </div>
         </div>
       </section>

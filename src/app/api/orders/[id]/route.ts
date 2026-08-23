@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { isValidUUID } from "@/lib/validation";
 import type { Order, UpdateOrderInput, ApiResponse } from "@/types/api";
 
 interface RouteParams {
@@ -212,11 +213,4 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       { status: 500 },
     );
   }
-}
-
-// Função helper para validar UUID
-function isValidUUID(uuid: string): boolean {
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
 }
