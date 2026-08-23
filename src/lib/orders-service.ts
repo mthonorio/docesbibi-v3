@@ -108,12 +108,20 @@ export async function updateOrderPaymentStatus(params: {
   return getOrderById(result.rows[0].id);
 }
 
+/**
+ * Chave de idempotência é (mp_payment_id, status), não só mp_payment_id —
+ * o MP manda uma notificação por MUDANÇA de status do mesmo pagamento (ex.:
+ * "pending" e depois "approved" chegam separados, mesmo data.id). Checar só
+ * por mp_payment_id faria a primeira notificação "travar" o pagamento e
+ * descartaria a transição real para "approved". Ver sql/005_payment_events_status_key.sql.
+ */
 export async function isPaymentEventProcessed(
   mpPaymentId: string,
+  status: string,
 ): Promise<boolean> {
   const result = await query(
-    `SELECT 1 FROM payment_events WHERE mp_payment_id = $1`,
-    [mpPaymentId],
+    `SELECT 1 FROM payment_events WHERE mp_payment_id = $1 AND status = $2`,
+    [mpPaymentId, status],
   );
   return result.rows.length > 0;
 }
@@ -126,7 +134,7 @@ export async function recordPaymentEvent(params: {
   await query(
     `INSERT INTO payment_events (mp_payment_id, order_id, status)
      VALUES ($1, $2, $3)
-     ON CONFLICT (mp_payment_id) DO NOTHING`,
+     ON CONFLICT (mp_payment_id, status) DO NOTHING`,
     [params.mpPaymentId, params.orderId, params.status],
   );
 }

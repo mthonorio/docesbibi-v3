@@ -50,6 +50,7 @@ Os dois caminhos de dados que existiam antes (Supabase client vs. `pg` Pool)
    psql $DATABASE_URL -f sql/easter_customization.sql
    psql $DATABASE_URL -f sql/002_payment_flow.sql
    psql $DATABASE_URL -f sql/004_auth_users.sql
+   psql $DATABASE_URL -f sql/005_payment_events_status_key.sql
    ```
    (`sql/003_rls_policies.sql` é específico do Supabase — não rodar.)
 3. **Migrar os dados existentes** (produtos/pedidos reais que hoje estão no
@@ -112,6 +113,10 @@ MERCADO_PAGO_ACCESS_TOKEN=APP_USR-...
 MERCADO_PAGO_PUBLIC_KEY=APP_USR-...
 MERCADO_PAGO_WEBHOOK_SECRET=...
 
+RESEND_API_KEY=...           # https://resend.com/api-keys
+EMAIL_FROM=Doces Bibi <pedidos@docesbibi.com.br>   # domínio verificado no Resend, ver EMAIL_GUIDE.md
+STORE_OWNER_EMAIL=docesbibii@gmail.com
+
 NEXT_PUBLIC_BASE_URL=https://docesbibi.com.br
 NEXT_PUBLIC_API_URL=https://docesbibi.com.br
 
@@ -150,8 +155,10 @@ Variables** também.
 9. **Smoke test end-to-end**: abrir o site, ver se os produtos e imagens
    carregam, adicionar ao carrinho, ir até o checkout, confirmar que
    `POST /api/create-payment` cria o pedido e redireciona pro Mercado Pago,
-   que o webhook de retorno atualiza o status do pedido, e que o login em
-   `/admin/login` dá acesso a `/orders`.
+   que o webhook de retorno atualiza o status do pedido, envia o e-mail de
+   confirmação pro cliente e o de aviso pra `STORE_OWNER_EMAIL` (ver
+   [EMAIL_GUIDE.md](./EMAIL_GUIDE.md)), e que o login em `/admin/login` dá
+   acesso a `/orders`.
 
 ## O que não muda
 

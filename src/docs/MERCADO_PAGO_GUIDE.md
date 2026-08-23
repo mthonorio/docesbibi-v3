@@ -66,28 +66,66 @@ src/
 
 ## 🔐 Configuração de Ambiente {#configuração}
 
+> ℹ️ **Como identificar se uma credencial é de teste ou de produção.** O
+> Mercado Pago tem dois mecanismos de sandbox diferentes, com formatos
+> diferentes:
+> - **Credenciais de teste da conta principal** — prefixo `TEST-` em
+>   ambas (Access Token e Public Key). Painel MP → Suas integrações →
+>   [app] → Credenciais de teste.
+> - **Usuário de teste (vendedor de teste)** — uma conta MP inteira à
+>   parte, sandboxed, criada em Suas integrações → Contas de teste. As
+>   credenciais *dessa* conta usam o formato normal `APP_USR-...` (porque,
+>   da perspectiva dela, são as credenciais "de produção" da própria conta
+>   de teste) — **`APP_USR-` sozinho não é prova de que é produção**.
+>
+> Pra ter certeza de qual é qual, consultar a API diretamente (não custa
+> nada, não move dinheiro):
+> ```bash
+> curl -H "Authorization: Bearer $MERCADO_PAGO_ACCESS_TOKEN" \
+>   https://api.mercadopago.com/users/me
+> ```
+> Se a resposta tiver `"tags":["test_user",...]` e um e-mail
+> `@testuser.com`, é conta de teste — segura pra usar com os cartões de
+> teste abaixo, nenhum pagamento é cobrança real.
+
 ### `.env.local` - SANDBOX (Desenvolvimento)
 
 ```bash
-# ===== MERCADO PAGO - SANDBOX (NÃO USE EM PRODUÇÃO) =====
-MERCADO_PAGO_ACCESS_TOKEN=APP_USR-926607722500117-033021-...
-MERCADO_PAGO_PUBLIC_KEY=APP_USR-bfa41cf3-c51a-4c65-86b9-...
+# ===== MERCADO PAGO - SANDBOX =====
+# TEST-... (credenciais de teste da conta principal) OU APP_USR-... de um
+# usuário de teste — ver nota acima sobre como confirmar qual é.
+MERCADO_PAGO_ACCESS_TOKEN=TEST-...
+MERCADO_PAGO_PUBLIC_KEY=TEST-...
 
 # URLs de retorno
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:3000
 
-# Webhook (opcional em sandbox)
+# Webhook — obrigatório para o /api/webhook validar a assinatura; sem isso,
+# em desenvolvimento (NODE_ENV !== production) a validação é pulada (só
+# para não travar teste local), mas o comportamento não é o mesmo que em
+# produção. Pegar em Suas integrações > [app] > Webhooks > Assinatura secreta.
 MERCADO_PAGO_WEBHOOK_SECRET=seu_webhook_secret_aqui
 ```
 
 ### Obter Credenciais (Sandbox)
 
+**Opção A — credenciais de teste da conta principal:**
 1. Acesse: https://www.mercadopago.com.br/developers/panel
 2. Faça login com sua conta
-3. Vá para **Credenciais > Teste**
-4. Copie `Access Token` e `Public Key`
+3. Vá para **Suas integrações** → selecione (ou crie) a aplicação → **Credenciais de teste**
+4. Copie `Access Token` e `Public Key` — ambos devem começar com `TEST-`
 5. Cole no `.env.local`
+
+**Opção B — usuário de teste (vendedor de teste):**
+1. **Suas integrações → Contas de teste** → criar um usuário de teste vendedor
+2. Fazer login como esse usuário (login/senha próprios, gerados pelo MP) e pegar as credenciais dele no painel — vêm no formato `APP_USR-...`
+3. Cole no `.env.local`
+
+Em ambos os casos, crie também um **usuário de teste comprador** (mesma
+tela, Contas de teste) — é uma conta MP separada, usada só para pagar nas
+simulações (não dá pra pagar logado com a própria conta principal em cima
+de credenciais de teste).
 
 ---
 
@@ -203,8 +241,22 @@ curl http://localhost:3000/api/payments/12345678
 
 ### Teste 3: Simular Webhook
 
+> Isso só funciona sem `x-signature` se `MERCADO_PAGO_WEBHOOK_SECRET`
+> **não** estiver setada (`validateWebhookSignature` em
+> `src/lib/mercadopago.ts` só pula a validação quando `NODE_ENV !==
+> "production"` **e** o secret está ausente). Com o secret configurado —
+> que é o recomendado mesmo em dev, pra testar o caminho real — este curl
+> sem assinatura volta 401. Para testar o webhook de verdade (assinado,
+> vindo do MP de fato), é preciso expor `localhost:3000` publicamente com
+> um túnel (`ngrok http 3000`, ou `cloudflared tunnel --url
+> http://localhost:3000`) — o Mercado Pago não alcança `localhost`. Desde
+> que `src/app/api/create-payment/route.ts` manda `notification_url`
+> explícito em cada preferência (`${NEXT_PUBLIC_BASE_URL}/api/webhook`),
+> basta `NEXT_PUBLIC_BASE_URL` apontar pra URL do túnel durante o teste —
+> não precisa reconfigurar nada no painel do MP.
+
 ```bash
-# Simular notificação do Mercado Pago
+# Simular notificação do Mercado Pago (só funciona sem MERCADO_PAGO_WEBHOOK_SECRET setada)
 curl -X POST http://localhost:3000/api/webhook \
   -H "Content-Type: application/json" \
   -H "x-request-id: 12345" \
@@ -285,6 +337,11 @@ MERCADO_PAGO_WEBHOOK_SECRET=seu_webhook_secret_seguro
 ```
 
 ### 3. Registrar Webhooks em Produção
+
+Cada preferência já manda `notification_url` explícito (ver
+`src/app/api/create-payment/route.ts`), então o registro manual abaixo é
+redundante/fallback — mas vale manter configurado no painel também, como
+garantia caso a variável `NEXT_PUBLIC_BASE_URL` esteja errada num deploy:
 
 1. Acessar: https://www.mercadopago.com.br/developers/panel/webhooks
 2. Clicar "Adicionar nova notificação"

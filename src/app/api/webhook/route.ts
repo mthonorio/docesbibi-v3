@@ -10,6 +10,10 @@ import {
   recordPaymentEvent,
   updateOrderPaymentStatus,
 } from "@/lib/orders-service";
+import {
+  sendOrderConfirmationEmail,
+  sendNewOrderNotificationEmail,
+} from "@/lib/email";
 
 /**
  * POST /api/webhook
@@ -83,20 +87,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Assinatura inválida" }, { status: 401 });
     }
 
-    // ========== 5. IDEMPOTÊNCIA ==========
-    // O Mercado Pago reenvia notificações até receber 200 de forma
-    // consistente; sem isso, uma reentrega reaplicaria a mudança de status.
-    if (await isPaymentEventProcessed(paymentId)) {
-      logger.info("WEBHOOK", "Evento já processado, ignorando reentrega", {
-        paymentId,
-      });
-      return NextResponse.json(
-        { received: true, message: "Já processado" },
-        { status: 200 },
-      );
-    }
-
-    // ========== 6. CONSULTAR STATUS REAL DO PAGAMENTO ==========
+    // ========== 5. CONSULTAR STATUS REAL DO PAGAMENTO ==========
+    // Precisa vir antes da checagem de idempotência: a chave de dedupe é
+    // (payment_id, status), não só payment_id — o MP manda uma notificação
+    // por MUDANÇA de status do mesmo pagamento (ex.: "pending" e depois
+    // "approved" chegam em notificações separadas). Ver
+    // sql/005_payment_events_status_key.sql.
     const paymentStatus = await getPaymentStatus(paymentId);
 
     logger.info("WEBHOOK", "Status obtido com sucesso", {
@@ -104,6 +100,21 @@ export async function POST(req: Request) {
       status: paymentStatus.status,
       externalReference: paymentStatus.external_reference,
     });
+
+    // ========== 6. IDEMPOTÊNCIA ==========
+    // O Mercado Pago reenvia a mesma notificação até receber 200 de forma
+    // consistente; sem isso, uma reentrega do MESMO status reaplicaria a
+    // mudança (e reenviaria e-mail) à toa.
+    if (await isPaymentEventProcessed(paymentId, paymentStatus.status)) {
+      logger.info("WEBHOOK", "Evento já processado, ignorando reentrega", {
+        paymentId,
+        status: paymentStatus.status,
+      });
+      return NextResponse.json(
+        { received: true, message: "Já processado" },
+        { status: 200 },
+      );
+    }
 
     // ========== 7. ATUALIZAR O PEDIDO ==========
     let updatedOrderId: string | null = null;
@@ -127,6 +138,17 @@ export async function POST(req: Request) {
           orderId: updatedOrder.id,
           status: orderStatus,
         });
+
+        // E-mails só no momento em que o pagamento é de fato confirmado —
+        // não em "aguardando_pagamento"/"cancelado". Nunca bloqueia a
+        // resposta do webhook (sendOrderConfirmationEmail/
+        // sendNewOrderNotificationEmail engolem os próprios erros).
+        if (orderStatus === "pago") {
+          await Promise.all([
+            sendOrderConfirmationEmail(updatedOrder),
+            sendNewOrderNotificationEmail(updatedOrder),
+          ]);
+        }
       }
     } else {
       logger.warn("WEBHOOK", "Notificação sem external_reference", { paymentId });

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { createOrder } from "@/lib/orders-service";
+import {
+  sendOrderConfirmationEmail,
+  sendNewOrderNotificationEmail,
+} from "@/lib/email";
 import type { Order, CreateOrderInput, ApiResponse } from "@/types/api";
 
 // GET /api/orders - Listar todos os pedidos com filtro opcional
@@ -89,6 +93,15 @@ export async function POST(request: NextRequest) {
     }
 
     const order = await createOrder(body);
+
+    // Este é o caminho de pedido manual (sem pagamento online) — não há um
+    // evento de "pagamento confirmado" pra esperar, então o e-mail sai já
+    // na criação. (Pedidos do checkout com Mercado Pago só disparam e-mail
+    // quando o webhook confirma o pagamento — ver src/app/api/webhook/route.ts.)
+    await Promise.all([
+      sendOrderConfirmationEmail(order),
+      sendNewOrderNotificationEmail(order),
+    ]);
 
     const response: ApiResponse<Order> = {
       success: true,

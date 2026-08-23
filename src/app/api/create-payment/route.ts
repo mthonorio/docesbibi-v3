@@ -229,8 +229,21 @@ export async function POST(req: Request) {
       },
       external_reference: order.id,
       back_urls: backUrls,
+      // Explícito por preferência em vez de depender só da "Notification URL"
+      // configurada no painel do MP — assim cada ambiente (local/staging/
+      // produção) aponta pro seu próprio /api/webhook automaticamente. Pra
+      // testar localmente ainda é preciso expor a porta 3000 via túnel
+      // (ngrok etc.) — o MP não alcança localhost.
+      notification_url: `${baseUrl}/api/webhook`,
       statement_descriptor: "DOCES BIBI",
     };
+
+    // auto_return exige back_urls https — em dev (http://localhost) o MP
+    // rejeita/ignora a preferência se isso for setado, então só habilitamos
+    // em produção.
+    if (baseUrl.startsWith("https://")) {
+      preferenceData.auto_return = "approved";
+    }
 
     console.log("[MP Payment] Enviando preferência para o Mercado Pago", {
       itemsCount: preferenceData.items.length,
