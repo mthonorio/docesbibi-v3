@@ -5,7 +5,13 @@ import { addCorsHeaders, corsOptionsResponse } from "@/lib/cors";
 // Rotas que só a gestora (staff) pode ver. Note que "/admin/login" NÃO
 // entra aqui de propósito — protegê-la criaria um loop de redirect
 // (deslogado → /admin/login → "protegido, redireciona pra /admin/login"…).
-const STAFF_PATHS = ["/admin/dashboard", "/admin/vendas", "/admin/produtos"];
+const STAFF_PATHS = [
+  "/admin/dashboard",
+  "/admin/vendas",
+  "/admin/produtos",
+  "/admin/eventos",
+  "/admin/clientes",
+];
 
 // Rotas que só o comprador logado pode ver (mesma lógica: "/entrar" e
 // "/cadastro" ficam de fora pra não criar loop de redirect).

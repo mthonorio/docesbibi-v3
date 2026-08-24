@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Package,
+  Users,
+  PartyPopper,
   LogOut,
 } from "lucide-react";
 
@@ -14,6 +16,8 @@ const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/vendas", label: "Vendas", icon: ShoppingBag },
   { href: "/admin/produtos", label: "Produtos", icon: Package },
+  { href: "/admin/eventos", label: "Eventos", icon: PartyPopper },
+  { href: "/admin/clientes", label: "Clientes", icon: Users },
 ];
 
 export function AdminSidebar() {

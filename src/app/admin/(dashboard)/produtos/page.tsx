@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2 } from "lucide-react";
 import productApi from "@/lib/api-clients/products";
+import specialCategoryApi from "@/lib/api-clients/special-categories";
 import { formatCurrency } from "@/functions/currency";
 import {
   Dialog,
@@ -11,7 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/atoms/Dialog";
-import type { Product, CreateProductInput } from "@/types/api";
+import type { Product, CreateProductInput, SpecialCategorySummary } from "@/types/api";
 
 const CATEGORIES = ["personalizados", "tradicionais", "gourmet", "easter"];
 
@@ -23,6 +24,7 @@ const EMPTY_FORM: CreateProductInput = {
   description: "",
   active: true,
   stock: null,
+  special_category_id: null,
 };
 
 export default function ProdutosGestaoPage() {
@@ -30,11 +32,14 @@ export default function ProdutosGestaoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [specialCategories, setSpecialCategories] = useState<SpecialCategorySummary[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateProductInput>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -51,6 +56,13 @@ export default function ProdutosGestaoPage() {
 
   useEffect(() => {
     load();
+    specialCategoryApi
+      .getAll()
+      .then(setSpecialCategories)
+      .catch(() => {
+        // Campo opcional no form — se a lista de eventos falhar, o select
+        // só fica vazio, não impede o CRUD de produtos de funcionar.
+      });
   }, []);
 
   const filtered =
@@ -61,6 +73,7 @@ export default function ProdutosGestaoPage() {
   const openCreate = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setImageError(null);
     setDialogOpen(true);
   };
 
@@ -74,8 +87,27 @@ export default function ProdutosGestaoPage() {
       description: product.description,
       active: product.active,
       stock: product.stock,
+      special_category_id: product.special_category_id,
     });
+    setImageError(null);
     setDialogOpen(true);
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite selecionar o mesmo arquivo de novo depois
+    if (!file) return;
+
+    try {
+      setImageError(null);
+      setUploadingImage(true);
+      const url = await productApi.uploadImage(file);
+      setForm((prev) => ({ ...prev, image: url }));
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : "Erro ao enviar imagem");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSave = async () => {
@@ -243,6 +275,26 @@ export default function ProdutosGestaoPage() {
                 ))}
               </select>
             </Field>
+            <Field label="Categoria especial (opcional)">
+              <select
+                value={form.special_category_id ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, special_category_id: e.target.value || null })
+                }
+                className="w-full rounded-xl border border-rosa-100 px-3.5 py-2.5 text-sm focus:border-rosa-800 focus:outline-none"
+              >
+                <option value="">Nenhuma</option>
+                {specialCategories.map((sc) => (
+                  <option key={sc.id} value={sc.id}>
+                    {sc.name} {sc.enabled ? "" : "(inativo)"}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-[11px] text-marrom-500">
+                Se o evento estiver desativado, este produto some do catálogo público mesmo
+                estando &quot;Ativo&quot;.
+              </p>
+            </Field>
             <Field label="Preço (R$)">
               <input
                 type="number"
@@ -255,13 +307,43 @@ export default function ProdutosGestaoPage() {
                 className="w-full rounded-xl border border-rosa-100 px-3.5 py-2.5 text-sm focus:border-rosa-800 focus:outline-none"
               />
             </Field>
-            <Field label="URL da imagem">
-              <input
-                value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                placeholder="https://..."
-                className="w-full rounded-xl border border-rosa-100 px-3.5 py-2.5 text-sm focus:border-rosa-800 focus:outline-none"
-              />
+            <Field label="Imagem do produto">
+              <div className="flex items-center gap-3">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-rosa-50">
+                  {form.image ? (
+                    <img
+                      src={form.image}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Upload className="h-5 w-5 text-rosa-300" strokeWidth={1.5} />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded-full bg-rosa-800 px-3.5 py-2 text-xs font-bold text-white">
+                    {uploadingImage ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    {uploadingImage ? "Enviando..." : "Anexar imagem"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleImageSelect}
+                      disabled={uploadingImage}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="mt-1.5 text-[11px] text-marrom-500">
+                    JPEG, PNG, WEBP ou GIF, até 5MB. Sobe pro R2 automaticamente.
+                  </p>
+                  {imageError && (
+                    <p className="mt-1 text-[11px] text-red-600">{imageError}</p>
+                  )}
+                </div>
+              </div>
             </Field>
             <Field label="Descrição">
               <textarea
@@ -301,7 +383,7 @@ export default function ProdutosGestaoPage() {
           <DialogFooter>
             <button
               onClick={handleSave}
-              disabled={saving || !form.name || !form.image}
+              disabled={saving || uploadingImage || !form.name || !form.image}
               className="w-full rounded-full bg-gradient-to-br from-rosa-800 to-rosa-700 py-3 text-sm font-bold text-white disabled:opacity-60"
             >
               {saving ? "Salvando..." : "Salvar produto"}

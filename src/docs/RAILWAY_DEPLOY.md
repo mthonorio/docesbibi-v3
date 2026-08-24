@@ -62,7 +62,15 @@ Os dois caminhos de dados que existiam antes (Supabase client vs. `pg` Pool)
    ```
 4. Criar o primeiro usuário da gestora — ver [AUTH_GUIDE.md](./AUTH_GUIDE.md).
 
-## Imagens: migrar do Supabase Storage para o Cloudflare R2
+## Imagens: Cloudflare R2
+
+As credenciais R2 não são mais só pra migração pontual — a tela de produtos
+do painel (`/admin/produtos`) sobe novas imagens direto pro R2 via
+`POST /api/products/upload-image` ([route.ts](../app/api/products/upload-image/route.ts),
+lógica em [src/lib/r2.ts](../lib/r2.ts)), então `R2_ACCOUNT_ID`,
+`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` e
+`NEXT_PUBLIC_R2_PUBLIC_URL` precisam estar configuradas em produção pra esse
+botão funcionar, não só localmente pra rodar a migração abaixo.
 
 1. Criar um bucket R2 no Cloudflare Dashboard, habilitar acesso público
    (domínio `pub-<hash>.r2.dev` ou um domínio próprio) e gerar credenciais
@@ -104,7 +112,7 @@ DATABASE_SSL=false
 AUTH_SECRET=...              # npx auth secret
 
 NEXT_PUBLIC_R2_PUBLIC_URL=https://pub-xxxxxxxx.r2.dev
-R2_ACCOUNT_ID=...             # só necessário se rodar a migração a partir do Railway
+R2_ACCOUNT_ID=...             # obrigatória em runtime — upload de imagem em /admin/produtos usa isso
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET_NAME=docesbibi

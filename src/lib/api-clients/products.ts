@@ -93,6 +93,21 @@ export const productApi = {
     return handleResponse<Product>(response);
   },
 
+  // POST - Sobe uma imagem pro R2 e devolve a URL pública (usar o retorno
+  // como `image` em create/update — o upload em si não cria/edita produto)
+  async uploadImage(file: File): Promise<string> {
+    const body = new FormData();
+    body.append("file", file);
+
+    const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+      method: "POST",
+      body,
+    });
+
+    const { url } = await handleResponse<{ url: string }>(response);
+    return url;
+  },
+
   // DELETE - Deletar produto
   async delete(id: string): Promise<{ id: string }> {
     const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {

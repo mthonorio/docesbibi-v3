@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requireStaff } from "@/lib/auth-guards";
+import {
+  PUBLIC_PRODUCT_JOIN_SQL,
+  PUBLIC_PRODUCT_VISIBILITY_SQL,
+} from "@/lib/products-visibility";
 import { Product, CreateProductInput, ApiResponse } from "@/types/api";
 
 // GET /api/products - listar produtos. Público por natureza (catálogo da
-// loja), mas só mostra `active = true` por padrão — `includeInactive=true`
-// é usado pela tela de gestão (não é dado sensível, só visibilidade).
+// loja), mas só mostra produtos visíveis por padrão (active=true e, se
+// pertencer a um evento sazonal, o evento precisa estar enabled — ver
+// src/lib/products-visibility.ts) — `includeInactive=true` (usado só pela
+// tela de gestão) pula essa checagem inteira, a gestora precisa ver tudo.
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -17,17 +23,17 @@ export async function GET(request: NextRequest) {
 
     if (category && category !== "all") {
       params.push(category);
-      conditions.push(`category = $${params.length}`);
+      conditions.push(`p.category = $${params.length}`);
     }
 
     if (!includeInactive) {
-      conditions.push("active = true");
+      conditions.push(PUBLIC_PRODUCT_VISIBILITY_SQL);
     }
 
     const sql =
-      `SELECT * FROM products` +
+      `SELECT p.* FROM products p ${PUBLIC_PRODUCT_JOIN_SQL}` +
       (conditions.length ? ` WHERE ${conditions.join(" AND ")}` : "") +
-      ` ORDER BY created_at DESC`;
+      ` ORDER BY p.created_at DESC`;
 
     const result = await query(sql, params);
 
@@ -71,8 +77,8 @@ export async function POST(request: NextRequest) {
     }
 
     const sql = `
-      INSERT INTO products (name, category, price, image, description, active, stock, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      INSERT INTO products (name, category, price, image, description, active, stock, special_category_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *
     `;
 
@@ -84,6 +90,7 @@ export async function POST(request: NextRequest) {
       body.description,
       body.active ?? true,
       body.stock ?? null,
+      body.special_category_id ?? null,
     ]);
 
     const response: ApiResponse<Product> = {

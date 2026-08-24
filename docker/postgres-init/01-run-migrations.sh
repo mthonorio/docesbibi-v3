@@ -25,6 +25,7 @@ FILES=(
   "005_payment_events_status_key.sql"
   "006_customers.sql"
   "007_delivery_and_stock.sql"
+  "008_special_categories.sql"
 )
 
 for f in "${FILES[@]}"; do

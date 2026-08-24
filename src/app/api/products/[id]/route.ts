@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { isValidUUID } from "@/lib/validation";
 import { requireStaff } from "@/lib/auth-guards";
+import {
+  PUBLIC_PRODUCT_JOIN_SQL,
+  PUBLIC_PRODUCT_VISIBILITY_SQL,
+} from "@/lib/products-visibility";
 import { Product, UpdateProductInput, ApiResponse } from "@/types/api";
 
 interface ParamsProps {
@@ -10,7 +14,11 @@ interface ParamsProps {
   }>;
 }
 
-// GET /api/products/[id] - buscar um produto
+// GET /api/products/[id] - buscar um produto. Público (usado pela página de
+// detalhe da loja) — respeita a mesma regra de visibilidade de
+// GET /api/products: um produto de evento desativado responde 404 igual a
+// um produto inexistente, mesmo em acesso direto pela URL (SPEC de
+// Categorias Especiais, seção 7 — nunca confiar só no frontend pra esconder).
 export async function GET(request: NextRequest, { params }: ParamsProps) {
   try {
     const { id } = await params;
@@ -23,7 +31,10 @@ export async function GET(request: NextRequest, { params }: ParamsProps) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    const result = await query("SELECT * FROM products WHERE id = $1", [id]);
+    const result = await query(
+      `SELECT p.* FROM products p ${PUBLIC_PRODUCT_JOIN_SQL} WHERE p.id = $1 AND ${PUBLIC_PRODUCT_VISIBILITY_SQL}`,
+      [id],
+    );
 
     if (result.rows.length === 0) {
       const response: ApiResponse<null> = {
@@ -104,6 +115,11 @@ export async function PATCH(request: NextRequest, { params }: ParamsProps) {
     if (body.stock !== undefined) {
       fields.push(`stock = $${paramIndex}`);
       values.push(body.stock);
+      paramIndex++;
+    }
+    if (body.special_category_id !== undefined) {
+      fields.push(`special_category_id = $${paramIndex}`);
+      values.push(body.special_category_id);
       paramIndex++;
     }
 

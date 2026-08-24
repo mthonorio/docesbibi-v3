@@ -7,6 +7,7 @@ export interface Product {
   description: string;
   active: boolean;
   stock: number | null;
+  special_category_id: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -19,6 +20,7 @@ export interface CreateProductInput {
   description: string;
   active?: boolean;
   stock?: number | null;
+  special_category_id?: string | null;
 }
 
 export interface UpdateProductInput {
@@ -27,6 +29,7 @@ export interface UpdateProductInput {
   price?: number;
   image?: string;
   description?: string;
+  special_category_id?: string | null;
   active?: boolean;
   stock?: number | null;
 }
@@ -101,6 +104,64 @@ export interface UpdateOrderInput {
   delivery_type?: DeliveryType;
   delivery_date?: string;
   delivery_time?: string;
+}
+
+// ========== SPECIAL CATEGORIES (eventos sazonais) ==========
+export interface SpecialCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+  enabled: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SpecialCategorySummary extends SpecialCategory {
+  product_count: number;
+}
+
+export interface CreateSpecialCategoryInput {
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  enabled?: boolean;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface UpdateSpecialCategoryInput {
+  name?: string;
+  slug?: string;
+  description?: string;
+  image?: string;
+  enabled?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
+// ========== CUSTOMERS (conta do comprador) ==========
+export interface CustomerSummary {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  created_at: string;
+  order_count: number;
+  total_spent: number;
+  last_order_at: string | null;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  created_at: string;
 }
 
 export interface ApiResponse<T> {
